@@ -18,6 +18,8 @@
 4. **Install dependencies:**
    ```bash
    pip install --upgrade pip
+   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
@@ -38,6 +40,8 @@
 4. **Install dependencies:**
    ```cmd
    pip install --upgrade pip
+   ```
+   ```cmd
    pip install -r requirements.txt
    ```
 
