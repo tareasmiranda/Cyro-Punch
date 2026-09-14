@@ -1,0 +1,45 @@
+# --- Python Environment & Caches ---
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Kivy & KivyMD Specifics ---
+# Kivy configuration and log files (if stored locally)
+.kivy/
+*.log
+
+# --- Buildozer (Android/iOS Deployment) ---
+# Exclude the hidden buildozer folder, local specs, and outputs
+.buildozer/
+bin/
+*.spec
+
+# --- PyInstaller (Desktop Executables) ---
+*.manifest
+*.spec
+
+# --- IDEs and System Files ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
