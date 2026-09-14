@@ -45,13 +45,9 @@
 
 3. **Activate the virtual environment:**
    ```cmd
-   :: For Command Prompt
    venv\Scripts\activate
-   
-   :: For PowerShell
-   .\venv\Scripts\Activate.ps1
-   ```
 
+   
 4. **Install dependencies:**
    ```cmd
    pip install --upgrade pip
