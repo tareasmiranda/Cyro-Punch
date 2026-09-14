@@ -7,7 +7,7 @@ __pycache__/
 env/
 venv/
 ENV/
-.Scripts/
+Scripts/
 build/
 develop-eggs/
 dist/
