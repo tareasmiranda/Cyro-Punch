@@ -3,8 +3,8 @@
 
 ### 1. **Clonar el repo:**
    ```bash
-   git clone https://github.com/tareasmiranda/Cyro-punch-project.git
-   cd Cyro-punch-project
+   git clone https://github.com/tareasmiranda/Cyro-punch.git
+   cd Cyro-punch
    ```
 ### Linux
 2. **Create a virtual environment:**
