@@ -1,38 +1,22 @@
-## Getting Started
 
-Follow these instructions to set up and run the project locally.
+## Setup Instructions
 
-### Prerequisites
-
-Make sure you have **Python 3.9+** installed on your system. 
-
-### Installation
+### Linux
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
    cd YOUR_REPOSITORY_NAME
    ```
 
 2. **Create a virtual environment:**
    ```bash
-   # On macOS/Linux
    python3 -m venv venv
-
-   # On Windows
-   python -m venv venv
    ```
 
 3. **Activate the virtual environment:**
    ```bash
-   # On macOS/Linux
    source venv/bin/activate
-
-   # On Windows (Command Prompt)
-   venv\Scripts\activate
-
-   # On Windows (PowerShell)
-   .\venv\Scripts\Activate.ps1
    ```
 
 4. **Install dependencies:**
@@ -41,9 +25,40 @@ Make sure you have **Python 3.9+** installed on your system.
    pip install -r requirements.txt
    ```
 
-### Running the App
+5. **Run the app:**
+   ```bash
+   python main.py
+   ```
 
-To launch the desktop development version of the application, run:
-```bash
-python main.py
-```
+### Windows
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
+   cd YOUR_REPOSITORY_NAME
+   ```
+
+2. **Create a virtual environment:**
+   ```bash
+   python -m venv venv
+   ```
+
+3. **Activate the virtual environment:**
+   ```cmd
+   :: For Command Prompt
+   venv\Scripts\activate
+   
+   :: For PowerShell
+   .\venv\Scripts\Activate.ps1
+   ```
+
+4. **Install dependencies:**
+   ```cmd
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+5. **Run the app:**
+   ```cmd
+   python main.py
+   ```
