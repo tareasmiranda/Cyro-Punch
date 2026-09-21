@@ -15,18 +15,7 @@
    ```bash
    source venv/bin/activate
    ```
-4. **Install dependencies:**
-   ```bash
-   pip install --upgrade pip
-   ```
-   ```bash
-   pip install -r requirements.txt
-   ```
 
-5. **Run the app:**
-   ```bash
-   python main.py
-   ```
 
 ### Windows
 2. **Create a virtual environment:**
@@ -37,15 +26,16 @@
    ```cmd
    venv\Scripts\activate
    ```
-4. **Install dependencies:**
-   ```cmd
+
+### 4. **Install dependencies:**
+   ```
    pip install --upgrade pip
    ```
-   ```cmd
+   ```
    pip install -r requirements.txt
    ```
 
-5. **Run the app:**
-   ```cmd
+### 5. **Run the app:**
+   ```bash
    python main.py
    ```
