@@ -6,28 +6,28 @@
    git clone https://github.com/tareasmiranda/Cyro-punch.git
    cd Cyro-punch
    ```
-### Linux
-2. **Create a virtual environment:**
+### 1.1 Linux
+1. **Create a virtual environment:**
    ```bash
    python3 -m venv venv
    ```
-3. **Activate the virtual environment:**
+1. **Activate the virtual environment:**
    ```bash
    source venv/bin/activate
    ```
 
 
-### Windows
-2. **Create a virtual environment:**
+### 1.2 Windows
+1. **Create a virtual environment:**
    ```bash
    python -m venv venv
    ```
-3. **Activate the virtual environment:**
+1. **Activate the virtual environment:**
    ```cmd
    venv\Scripts\activate
    ```
 
-### 4. **Install dependencies:**
+### 2. **Install dependencies:**
    ```
    pip install --upgrade pip
    ```
@@ -35,7 +35,7 @@
    pip install -r requirements.txt
    ```
 
-### 5. **Run the app:**
+### 3. **Run the app:**
    ```bash
    python main.py
    ```
