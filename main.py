@@ -51,6 +51,7 @@ from kivy.properties import (
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.widget import Widget
@@ -86,6 +87,57 @@ def mix(color_a, color_b, t):
 # Nombres disponibles dentro del código KV (colores, dp/sp y mix).
 global_idmap.update(COLORS)
 global_idmap.update({"dp": dp, "sp": sp, "mix": mix})
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Textos de la interfaz (Español / Inglés)
+# ─────────────────────────────────────────────────────────────────────────
+TRANSLATIONS = {
+    "es": {
+        "greeting": "Hola, ¿qué\nnecesitas\ncomprar?",
+        "greeting_sub": "Crea una lista y mantén todo lo importante\nen un solo lugar.",
+        "new_list": "Nueva lista",
+        "my_lists": "Mis listas",
+        "add": "Agregar",
+        "active_list_one": "lista activa",
+        "active_list_many": "listas activas",
+        "weekly_shop": "Compra semanal",
+        "updated_today": "Actualizada hoy",
+        "items_completed": "{} artículos · {} completados",
+        "completed_of": "{} de {} completados",
+        "settings": "Ajustes",
+        "settings_sub": "Personaliza tu experiencia de compra.",
+        "dark_mode": "Tema oscuro",
+        "notifications": "Notificaciones",
+        "language": "Idioma",
+        "language_name": "Español",
+        "nav_home": "Inicio",
+        "nav_lists": "Listas",
+        "nav_settings": "Ajustes",
+    },
+    "en": {
+        "greeting": "Hi, what do\nyou need\nto buy?",
+        "greeting_sub": "Create a list and keep everything\nimportant in one place.",
+        "new_list": "New list",
+        "my_lists": "My lists",
+        "add": "Add",
+        "active_list_one": "active list",
+        "active_list_many": "active lists",
+        "weekly_shop": "Weekly shopping",
+        "updated_today": "Updated today",
+        "items_completed": "{} items · {} completed",
+        "completed_of": "{} of {} completed",
+        "settings": "Settings",
+        "settings_sub": "Customize your shopping experience.",
+        "dark_mode": "Dark mode",
+        "notifications": "Notifications",
+        "language": "Language",
+        "language_name": "English",
+        "nav_home": "Home",
+        "nav_lists": "Lists",
+        "nav_settings": "Settings",
+    },
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -230,6 +282,21 @@ class ShoppingItem(Pressable, Card):
         self.title_markup = f"[s]{text}[/s]" if self.done else text
 
 
+class LangOption(Pressable, BoxLayout):
+    """Una opción dentro del menú desplegable de idioma."""
+
+    code = StringProperty()
+    label = StringProperty()
+    selected = BooleanProperty(False)
+
+
+class LanguageDropDown(DropDown):
+    """Menú desplegable con los idiomas disponibles (Español / English).
+
+    Su contenido (las dos opciones) se define en interfaz.kv.
+    """
+
+
 # ─────────────────────────────────────────────────────────────────────────
 #  Aplicación
 # ─────────────────────────────────────────────────────────────────────────
@@ -237,6 +304,7 @@ class ShoppingListApp(MDApp):
     font_name = StringProperty("Roboto")
     current_tab = StringProperty("inicio")  # pestaña resaltada en la barra
     list_date = StringProperty(LIST_DATE)
+    lang = StringProperty("es")  # "es" o "en"
 
     lists_count = NumericProperty(1)
     total_items = NumericProperty(0)
@@ -278,6 +346,26 @@ class ShoppingListApp(MDApp):
     # ── Acciones (pendientes de implementar) ────────────────────────────
     def new_list(self):
         """Aquí se abrirá el flujo para crear una lista nueva."""
+
+    # ── Idioma ───────────────────────────────────────────────────────────
+    def tr(self, lang, key):
+        """Traduce `key` al idioma indicado.
+
+        Se llama desde el KV como app.tr(app.lang, "clave"): pasar
+        app.lang explícitamente permite que los bindings de KV detecten
+        la dependencia y actualicen el texto automáticamente al elegir
+        un idioma distinto en el menú.
+        """
+        return TRANSLATIONS.get(lang, TRANSLATIONS["es"]).get(key, key)
+
+    def set_language(self, code):
+        """Cambia el idioma activo (llamado al elegir una opción del menú)."""
+        if code in TRANSLATIONS:
+            self.lang = code
+
+    def open_language_menu(self, anchor):
+        """Abre el menú desplegable de idiomas anclado a `anchor`."""
+        LanguageDropDown().open(anchor)
 
     # ── Progreso de la lista ────────────────────────────────────────────
     def refresh_progress(self):
