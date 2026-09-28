@@ -8,8 +8,9 @@ Reproduce las cuatro pantallas del diseño:
   3. Detalle         (progreso + artículos con checkbox)
   4. Ajustes         (tema oscuro, notificaciones, idioma)
 
-Por ahora es una maqueta: la navegación, el marcado de artículos y el
-interruptor de tema funcionan a nivel visual, pero no se guarda nada.
+Por ahora es una maqueta: la navegación y el marcado de artículos
+funcionan a nivel visual, pero no se guarda nada. El interruptor de
+tema alterna entre modo oscuro y claro.
 
 Instalación (dentro del entorno virtual, en Windows):
     pip install kivy kivymd
@@ -60,23 +61,39 @@ from kivy.utils import escape_markup, get_color_from_hex
 from kivymd.app import MDApp
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Paleta de colores (tomada del diseño)
+#  Paleta de colores: modo oscuro (por defecto) y modo claro
 # ─────────────────────────────────────────────────────────────────────────
-PALETTE = {
+# Ambos modos usan los mismos roles de color; el verde lima de acento y el
+# color de texto sobre él son idénticos, solo cambian los tonos neutros.
+PALETTE_DARK = {
     "BG": "#0A0B0F",  # fondo de pantalla
     "SURFACE": "#14161B",  # tarjetas y filas
     "SURFACE_ALT": "#1C1F26",  # botón atrás, ícono de la tarjeta, píldora activa
     "NAV_BG": "#0E1015",  # barra de navegación inferior
     "BORDER": "#23262E",  # borde de tarjetas
     "ACCENT": "#BEF24B",  # verde lima
-    "ON_ACCENT": "#0A0B0F",  # texto/íconos sobre el verde lima
+    "ACCENT_FG": "#0A0B0F",  # texto/íconos sobre el verde lima
     "TEXT": "#FFFFFF",  # texto principal
     "MUTED": "#9599A4",  # texto secundario
     "SUBTLE": "#6E7280",  # íconos y etiquetas inactivas de la barra
     "TRACK": "#2A2D35",  # riel de la barra de progreso / interruptor apagado
     "CHECK_BORDER": "#7F8390",  # borde del checkbox vacío
 }
-COLORS = {name: get_color_from_hex(value) for name, value in PALETTE.items()}
+
+PALETTE_LIGHT = {
+    "BG": "#F5F6F8",
+    "SURFACE": "#FFFFFF",
+    "SURFACE_ALT": "#ECEEF2",
+    "NAV_BG": "#FFFFFF",
+    "BORDER": "#E1E3E8",
+    "ACCENT": "#BEF24B",
+    "ACCENT_FG": "#0A0B0F",
+    "TEXT": "#14161B",
+    "MUTED": "#5B5F6B",
+    "SUBTLE": "#8A8D96",
+    "TRACK": "#DADDE3",
+    "CHECK_BORDER": "#B5B8C0",
+}
 
 
 def mix(color_a, color_b, t):
@@ -84,8 +101,9 @@ def mix(color_a, color_b, t):
     return [a + (b - a) * t for a, b in zip(color_a, color_b)]
 
 
-# Nombres disponibles dentro del código KV (colores, dp/sp y mix).
-global_idmap.update(COLORS)
+# Nombres disponibles dentro del código KV (dp/sp y mix). Los colores del
+# tema viven como propiedades de la App (app.bg_color, app.text_color...)
+# para que el KV reaccione cuando se alterna entre modo oscuro y claro.
 global_idmap.update({"dp": dp, "sp": sp, "mix": mix})
 
 
@@ -305,12 +323,28 @@ class ShoppingListApp(MDApp):
     current_tab = StringProperty("inicio")  # pestaña resaltada en la barra
     list_date = StringProperty(LIST_DATE)
     lang = StringProperty("es")  # "es" o "en"
+    theme_dark = BooleanProperty(True)  # True = oscuro, False = claro
 
     lists_count = NumericProperty(1)
     total_items = NumericProperty(0)
     done_items = NumericProperty(0)
     progress = NumericProperty(0)  # 0..1
     percent = NumericProperty(0)  # 0..100
+
+    # Colores del tema activo (arrancan en modo oscuro). El KV los usa como
+    # app.xxx_color; al alternar el tema se animan hacia la otra paleta.
+    bg_color = ColorProperty(get_color_from_hex(PALETTE_DARK["BG"]))
+    surface_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE"]))
+    surface_alt_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE_ALT"]))
+    nav_bg_color = ColorProperty(get_color_from_hex(PALETTE_DARK["NAV_BG"]))
+    border_color = ColorProperty(get_color_from_hex(PALETTE_DARK["BORDER"]))
+    accent_color = ColorProperty(get_color_from_hex(PALETTE_DARK["ACCENT"]))
+    accent_fg_color = ColorProperty(get_color_from_hex(PALETTE_DARK["ACCENT_FG"]))
+    text_color = ColorProperty(get_color_from_hex(PALETTE_DARK["TEXT"]))
+    muted_color = ColorProperty(get_color_from_hex(PALETTE_DARK["MUTED"]))
+    subtle_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SUBTLE"]))
+    track_color = ColorProperty(get_color_from_hex(PALETTE_DARK["TRACK"]))
+    check_border_color = ColorProperty(get_color_from_hex(PALETTE_DARK["CHECK_BORDER"]))
 
     SCREEN_ORDER = ("inicio", "listas", "detalle", "ajustes")
 
@@ -319,7 +353,7 @@ class ShoppingListApp(MDApp):
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Lime"
         self.font_name = register_fonts()
-        Window.clearcolor = COLORS["BG"]
+        Window.clearcolor = self.bg_color
         return Builder.load_file(KV_PATH)
 
     def on_start(self):
@@ -346,6 +380,25 @@ class ShoppingListApp(MDApp):
     # ── Acciones (pendientes de implementar) ────────────────────────────
     def new_list(self):
         """Aquí se abrirá el flujo para crear una lista nueva."""
+
+    # ── Tema oscuro / claro ──────────────────────────────────────────────
+    def set_dark_mode(self, active):
+        """Alterna entre modo oscuro y claro con una transición suave."""
+        if active == self.theme_dark:
+            return
+        self.theme_dark = active
+        self.theme_cls.theme_style = "Dark" if active else "Light"
+        palette = PALETTE_DARK if active else PALETTE_LIGHT
+        targets = {
+            f"{name.lower()}_color": get_color_from_hex(value)
+            for name, value in palette.items()
+        }
+        Animation.cancel_all(self, *targets.keys())
+        Animation(duration=0.35, t="out_quad", **targets).start(self)
+
+    def on_bg_color(self, _instance, value):
+        # Mantiene el fondo de la ventana sincronizado con la interfaz.
+        Window.clearcolor = value
 
     # ── Idioma ───────────────────────────────────────────────────────────
     def tr(self, lang, key):

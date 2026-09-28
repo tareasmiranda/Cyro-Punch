@@ -5,7 +5,7 @@
 
 <BaseTxt>:
     font_name: app.font_name
-    color: TEXT
+    color: app.text_color
     font_size: sp(16)
     halign: "left"
     valign: "middle"
@@ -23,7 +23,7 @@
 <Icon@MDIcon>:
     theme_font_size: "Custom"
     font_size: sp(24)
-    icon_color: TEXT
+    icon_color: app.text_color
 
 # ══════════ Componentes ═══════════════════════════════════════════════════
 
@@ -49,7 +49,7 @@
     width: content.width + dp(40)
     canvas.before:
         Color:
-            rgba: ACCENT
+            rgba: app.accent_color
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -62,13 +62,13 @@
         spacing: dp(8)
         Icon:
             icon: root.icon
-            icon_color: ON_ACCENT
+            icon_color: app.accent_fg_color
             font_size: sp(20)
             pos_hint: {"center_y": .5}
         TxtAuto:
             text: root.text
             bold: True
-            color: ON_ACCENT
+            color: app.accent_fg_color
             font_size: sp(17)
             pos_hint: {"center_y": .5}
 
@@ -79,14 +79,14 @@
     size: dp(44), dp(44)
     canvas.before:
         Color:
-            rgba: SURFACE
+            rgba: app.surface_color
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [dp(14)]
     Icon:
         icon: root.icon
-        icon_color: TEXT
+        icon_color: app.text_color
         font_size: sp(22)
 
 <NavItem>:
@@ -94,7 +94,7 @@
     anchor_y: "center"
     canvas.before:
         Color:
-            rgba: SURFACE_ALT if self.active else (0, 0, 0, 0)
+            rgba: app.surface_alt_color if self.active else (0, 0, 0, 0)
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -106,13 +106,13 @@
         spacing: dp(4)
         Icon:
             icon: root.icon
-            icon_color: ACCENT if root.active else SUBTLE
+            icon_color: app.accent_color if root.active else app.subtle_color
             font_size: sp(24)
             pos_hint: {"center_x": .5}
         TxtAuto:
             text: root.text
             bold: root.active
-            color: TEXT if root.active else SUBTLE
+            color: app.text_color if root.active else app.subtle_color
             font_size: sp(12.5)
             pos_hint: {"center_x": .5}
 
@@ -122,20 +122,20 @@
     canvas:
         # Casilla vacía: anillo gris (borde) + centro del color de la fila
         Color:
-            rgba: ACCENT if self.active else CHECK_BORDER
+            rgba: app.accent_color if self.active else app.check_border_color
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [dp(8)]
         Color:
-            rgba: (0, 0, 0, 0) if self.active else SURFACE
+            rgba: (0, 0, 0, 0) if self.active else app.surface_color
         RoundedRectangle:
             pos: self.x + dp(2.2), self.y + dp(2.2)
             size: self.width - dp(4.4), self.height - dp(4.4)
             radius: [dp(5.8)]
         # Palomita (solo cuando está marcada)
         Color:
-            rgba: ON_ACCENT if self.active else (0, 0, 0, 0)
+            rgba: app.accent_fg_color if self.active else (0, 0, 0, 0)
         Line:
             points:
                 [ \
@@ -152,13 +152,13 @@
     height: dp(5)
     canvas:
         Color:
-            rgba: TRACK
+            rgba: app.track_color
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [self.height / 2]
         Color:
-            rgba: ACCENT
+            rgba: app.accent_color
         RoundedRectangle:
             pos: self.pos
             size: max(self.width * self.value, self.height if self.value > 0 else 0), self.height
@@ -169,13 +169,13 @@
     size: dp(50), dp(30)
     canvas:
         Color:
-            rgba: mix(TRACK, ACCENT, self.progress)
+            rgba: mix(app.track_color, app.accent_color, self.progress)
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [self.height / 2]
         Color:
-            rgba: BG
+            rgba: app.bg_color
         Ellipse:
             pos:
                 self.x + dp(4) + (self.width - dp(8) - dp(22)) * self.progress, \
@@ -188,7 +188,7 @@
     padding: dp(18), 0
     spacing: dp(14)
     radius: dp(16)
-    fill_color: SURFACE
+    fill_color: app.surface_color
     CheckMark:
         active: root.done
         pos_hint: {"center_y": .5}
@@ -202,11 +202,11 @@
             text: root.title_markup
             markup: True
             font_size: sp(16.5)
-            color: MUTED if root.done else TEXT
+            color: app.muted_color if root.done else app.text_color
         Txt:
             text: root.quantity
             font_size: sp(13)
-            color: MUTED
+            color: app.muted_color
 
 <SettingRow>:
     size_hint_y: None
@@ -214,10 +214,10 @@
     padding: dp(18), 0, dp(16), 0
     spacing: dp(14)
     radius: dp(16)
-    fill_color: SURFACE
+    fill_color: app.surface_color
     Icon:
         icon: root.icon
-        icon_color: MUTED
+        icon_color: app.muted_color
         font_size: sp(22)
         pos_hint: {"center_y": .5}
     Txt:
@@ -233,19 +233,19 @@
     spacing: dp(10)
     canvas.before:
         Color:
-            rgba: SURFACE_ALT if self.selected else (0, 0, 0, 0)
+            rgba: app.surface_alt_color if self.selected else (0, 0, 0, 0)
         Rectangle:
             pos: self.pos
             size: self.size
     Txt:
         text: root.label
-        color: ACCENT if root.selected else TEXT
+        color: app.accent_color if root.selected else app.text_color
         bold: root.selected
         font_size: sp(15.5)
         pos_hint: {"center_y": .5}
     Icon:
         icon: "check"
-        icon_color: ACCENT
+        icon_color: app.accent_color
         font_size: sp(17)
         opacity: 1 if root.selected else 0
         pos_hint: {"center_y": .5}
@@ -255,13 +255,13 @@
     width: dp(190)
     canvas.before:
         Color:
-            rgba: SURFACE
+            rgba: app.surface_color
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [dp(14)]
         Color:
-            rgba: BORDER
+            rgba: app.border_color
         Line:
             rounded_rectangle: (self.x, self.y, self.width, self.height, dp(14))
             width: 1
@@ -287,12 +287,12 @@
     spacing: dp(6)
     canvas.before:
         Color:
-            rgba: NAV_BG
+            rgba: app.nav_bg_color
         Rectangle:
             pos: self.pos
             size: self.size
         Color:
-            rgba: BORDER
+            rgba: app.border_color
         Line:
             points: self.x, self.top, self.right, self.top
             width: 1
@@ -331,7 +331,7 @@
         Txt:
             text: app.tr(app.lang, "greeting_sub")
             font_size: sp(16)
-            color: MUTED
+            color: app.muted_color
             line_height: 1.25
         Widget:
         AnchorLayout:
@@ -364,7 +364,7 @@
                 Txt:
                     text: "{} {}".format(app.lists_count, app.tr(app.lang, "active_list_one") if app.lists_count == 1 else app.tr(app.lang, "active_list_many"))
                     font_size: sp(14.5)
-                    color: MUTED
+                    color: app.muted_color
             PillButton:
                 text: app.tr(app.lang, "add")
                 icon: "plus"
@@ -376,8 +376,8 @@
             height: self.minimum_height
             padding: dp(24), dp(24), dp(24), dp(22)
             spacing: dp(20)
-            fill_color: SURFACE
-            border_color: BORDER
+            fill_color: app.surface_color
+            border_color: app.border_color
             radius: dp(22)
             on_release: app.go("detalle")
             BoxLayout:
@@ -389,14 +389,14 @@
                     size: dp(48), dp(48)
                     canvas.before:
                         Color:
-                            rgba: SURFACE_ALT
+                            rgba: app.surface_alt_color
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
                             radius: [dp(14)]
                     Icon:
                         icon: "basket-outline"
-                        icon_color: ACCENT
+                        icon_color: app.accent_color
                         font_size: sp(26)
                 BoxLayout:
                     orientation: "vertical"
@@ -411,10 +411,10 @@
                     Txt:
                         text: app.tr(app.lang, "items_completed").format(app.total_items, app.done_items)
                         font_size: sp(14)
-                        color: MUTED
+                        color: app.muted_color
                 Icon:
                     icon: "chevron-right"
-                    icon_color: MUTED
+                    icon_color: app.muted_color
                     font_size: sp(20)
                     pos_hint: {"center_y": .5}
             BoxLayout:
@@ -427,14 +427,14 @@
                     pos_hint: {"center_y": .5}
                     canvas:
                         Color:
-                            rgba: ACCENT
+                            rgba: app.accent_color
                         Ellipse:
                             pos: self.pos
                             size: self.size
                 Txt:
                     text: app.tr(app.lang, "updated_today")
                     font_size: sp(12.5)
-                    color: MUTED
+                    color: app.muted_color
                     pos_hint: {"center_y": .5}
         Widget:
 
@@ -465,10 +465,10 @@
                 Txt:
                     text: app.list_date
                     font_size: sp(14)
-                    color: MUTED
+                    color: app.muted_color
             Icon:
                 icon: "dots-horizontal"
-                icon_color: MUTED
+                icon_color: app.muted_color
                 font_size: sp(24)
                 pos_hint: {"center_y": .5}
         BoxLayout:
@@ -482,12 +482,12 @@
                 Txt:
                     text: app.tr(app.lang, "completed_of").format(app.done_items, app.total_items)
                     font_size: sp(13)
-                    color: MUTED
+                    color: app.muted_color
                 TxtAuto:
                     text: "{}%".format(app.percent)
                     font_size: sp(13)
                     bold: True
-                    color: ACCENT
+                    color: app.accent_color
             SoftProgress:
                 value: app.progress
         ScrollView:
@@ -518,7 +518,7 @@
             Txt:
                 text: app.tr(app.lang, "settings_sub")
                 font_size: sp(14.5)
-                color: MUTED
+                color: app.muted_color
         BoxLayout:
             orientation: "vertical"
             size_hint_y: None
@@ -528,14 +528,15 @@
                 icon: "moon-waning-crescent"
                 text: app.tr(app.lang, "dark_mode")
                 ToggleSwitch:
-                    active: True
+                    active: app.theme_dark
                     pos_hint: {"center_y": .5}
+                    on_active: app.set_dark_mode(self.active)
             SettingRow:
                 icon: "bell-outline"
                 text: app.tr(app.lang, "notifications")
                 Icon:
                     icon: "chevron-right"
-                    icon_color: MUTED
+                    icon_color: app.muted_color
                     font_size: sp(20)
                     pos_hint: {"center_y": .5}
             SettingRow:
@@ -544,12 +545,12 @@
                 on_release: app.open_language_menu(self)
                 TxtAuto:
                     text: app.tr(app.lang, "language_name")
-                    color: MUTED
+                    color: app.muted_color
                     font_size: sp(15)
                     pos_hint: {"center_y": .5}
                 Icon:
                     icon: "chevron-right"
-                    icon_color: MUTED
+                    icon_color: app.muted_color
                     font_size: sp(20)
                     pos_hint: {"center_y": .5}
         Widget:
@@ -560,7 +561,7 @@ MDBoxLayout:
     orientation: "vertical"
     canvas.before:
         Color:
-            rgba: BG
+            rgba: app.bg_color
         Rectangle:
             pos: self.pos
             size: self.size
