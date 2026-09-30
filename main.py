@@ -119,7 +119,7 @@ TRANSLATIONS = {
         "add": "Agregar",
         "active_list_one": "lista activa",
         "active_list_many": "listas activas",
-        "weekly_shop": "Compra semanal",
+        "weekly_shop": "Compras Edwards",
         "updated_today": "Actualizada hoy",
         "items_completed": "{} artículos · {} completados",
         "completed_of": "{} de {} completados",
@@ -141,7 +141,7 @@ TRANSLATIONS = {
         "add": "Add",
         "active_list_one": "active list",
         "active_list_many": "active lists",
-        "weekly_shop": "Weekly shopping",
+        "weekly_shop": "Compras Edwards",
         "updated_today": "Updated today",
         "items_completed": "{} items · {} completed",
         "completed_of": "{} of {} completed",
@@ -161,17 +161,17 @@ TRANSLATIONS = {
 # ─────────────────────────────────────────────────────────────────────────
 #  Datos de ejemplo
 # ─────────────────────────────────────────────────────────────────────────
-LIST_DATE = "Lunes, 14 de septiembre"
+LIST_DATE = "Miercoles, 29 de septiembre"
 SAMPLE_ITEMS = [
     # (nombre, cantidad, completado)
-    ("Leche", "1 litro", True),
-    ("Pan integral", "1 paquete", True),
-    ("Tomates", "6 unidades", False),
-    ("Café", "250 g", False),
-    ("Huevos", "12 unidades", False),
-    ("Aceite de oliva", "1 botella", False),
+    ("Leche con Avena", "10 litros", False),
+    ("Pan de Masa Madre", "1 paquete", False),
+    ("Balticas", "1 six pack", False),
+    ("Pipeño", "1 Garrafa", False),
+    ("Granadina", "1 botella", False),
+    ("Helado (piña)", "1 preferiblemente", False),
+    ("Cigarros", "opcional", True)
 ]
-
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Tipografía
