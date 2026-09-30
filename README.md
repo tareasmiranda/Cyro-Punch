@@ -1,7 +1,11 @@
 ## MirandaOrganizer(beta)
-MirandaOrganizer es una app que esta pensada en el usuario común y en personas con TOC(Organizadas) y que quieran una forma fácil y simple de administrar sus compras
+MirandaOrganizer es una app que esta pensada en el usuario común y en personas con TOC(organizadas) y que quieran una forma fácil y simple de administrar sus compras
 semanales. Se diferencia de otras shopping list principalmente, en que esta basada 100% en las opiniones y necesidades de los usuarios.
-   
+
+   Link encuesta: https://forms.gle/fUqRz53M5f1b9C176
+
+   Resultados Encuesta: https://docs.google.com/spreadsheets/d/17e4VL_yqJxEj8KFdAcIP1bdYK6tSLGgyYaiQ9mujS3k/edit?usp=sharing
+
 ## Instrucciones de instalación
 Para usar la instalación desde el repositorio o portable, sigue estos pasos:
 ### Windows
