@@ -25,6 +25,27 @@
     font_size: sp(24)
     icon_color: app.text_color
 
+# Ícono y texto del PillButton: usan su propia clase (en vez de Icon/TxtAuto)
+# porque su color siempre es app.accent_fg_color, un tono idéntico en modo
+# oscuro y claro. Si compartieran la regla genérica de Icon/TxtAuto
+# (color: app.text_color), Kivy mantendría ambos enlaces activos y, como
+# accent_fg_color nunca cambia de valor entre temas, su enlace no se
+# refresca durante la animación: el texto terminaría con el color de
+# app.text_color en vez de mantenerse siempre oscuro sobre el botón lima.
+<PillIcon@MDIcon>:
+    theme_font_size: "Custom"
+    font_size: sp(20)
+    icon_color: app.accent_fg_color
+
+<PillLabel@Label>:
+    font_name: app.font_name
+    bold: True
+    font_size: sp(17)
+    size_hint: None, None
+    text_size: None, None
+    size: self.texture_size
+    color: app.accent_fg_color
+
 # ══════════ Componentes ═══════════════════════════════════════════════════
 
 <Card>:
@@ -60,16 +81,11 @@
         height: dp(54)
         width: self.minimum_width
         spacing: dp(8)
-        Icon:
+        PillIcon:
             icon: root.icon
-            icon_color: app.accent_fg_color
-            font_size: sp(20)
             pos_hint: {"center_y": .5}
-        TxtAuto:
+        PillLabel:
             text: root.text
-            bold: True
-            color: app.accent_fg_color
-            font_size: sp(17)
             pos_hint: {"center_y": .5}
 
 <IconButton>:

@@ -311,8 +311,28 @@ class LangOption(Pressable, BoxLayout):
 class LanguageDropDown(DropDown):
     """Menú desplegable con los idiomas disponibles (Español / English).
 
-    Su contenido (las dos opciones) se define en interfaz.kv.
+    Su contenido (las dos opciones) se define en interfaz.kv. Se abre
+    alineado al borde derecho del widget que lo invoca, con un breve
+    desvanecimiento + deslizamiento hacia su posición final.
     """
+
+    def _reposition(self, *args):
+        super()._reposition(*args)
+        if self.attach_to is None:
+            return
+        # El comportamiento por defecto alinea el menú al borde IZQUIERDO
+        # del widget ancla; lo recorremos para que quede pegado al borde
+        # DERECHO (donde están el texto del idioma actual y la flecha).
+        right_edge = self.attach_to.to_window(self.attach_to.right, 0)[0]
+        x = right_edge - self.width
+        self.x = max(x, 0)
+
+    def open(self, widget):
+        super().open(widget)
+        target_y = self.y
+        self.y = target_y + dp(10)
+        self.opacity = 0
+        Animation(y=target_y, opacity=1, duration=0.16, t="out_quad").start(self)
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -389,9 +409,18 @@ class ShoppingListApp(MDApp):
         self.theme_dark = active
         self.theme_cls.theme_style = "Dark" if active else "Light"
         palette = PALETTE_DARK if active else PALETTE_LIGHT
+        # "TEXT" va primero a propósito: varios widgets (el texto de los
+        # botones, el check del menú de idioma, etc.) fijan su color con
+        # app.accent_color/app.accent_fg_color en vez del app.text_color
+        # por defecto. Kivy mantiene ambos enlaces activos, así que si
+        # "TEXT" se animara después, su valor ganaría en cada fotograma y
+        # esos textos se verían blancos/negros en vez de su color propio.
+        # Animando "TEXT" primero, el color específico de cada widget es
+        # siempre el último en aplicarse.
+        order = ["TEXT"] + [name for name in palette if name != "TEXT"]
         targets = {
-            f"{name.lower()}_color": get_color_from_hex(value)
-            for name, value in palette.items()
+            f"{name.lower()}_color": get_color_from_hex(palette[name])
+            for name in order
         }
         Animation.cancel_all(self, *targets.keys())
         Animation(duration=0.35, t="out_quad", **targets).start(self)
