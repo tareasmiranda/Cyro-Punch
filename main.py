@@ -112,8 +112,8 @@ global_idmap.update({"dp": dp, "sp": sp, "mix": mix})
 # ─────────────────────────────────────────────────────────────────────────
 TRANSLATIONS = {
     "es": {
-        "greeting": "Hola, ¿qué\nnecesitas\ncomprar?",
-        "greeting_sub": "Crea una lista y mantén todo lo importante\nen un solo lugar.",
+        "greeting": "Hola, ¿cómo va\ntu día?",
+        "greeting_sub": "Empieza creando una lista y organiza\ntodo lo que necesites :)",
         "new_list": "Nueva lista",
         "my_lists": "Mis listas",
         "add": "Agregar",
@@ -134,8 +134,8 @@ TRANSLATIONS = {
         "nav_settings": "Ajustes",
     },
     "en": {
-        "greeting": "Hi, what do\nyou need\nto buy?",
-        "greeting_sub": "Create a list and keep everything\nimportant in one place.",
+        "greeting": "Hey, how's\nyour day?",
+        "greeting_sub": "Start making a list and organize\neverything you need :)",
         "new_list": "New list",
         "my_lists": "My lists",
         "add": "Add",
