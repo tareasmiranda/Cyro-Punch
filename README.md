@@ -1,4 +1,7 @@
-## MirandaOrganizer(beta)
+## MirandaList(beta)
+
+[AI-WORKFLOW.md](https://github.com/tareasmiranda/Cyro-Punch/blob/main/docs/AI-WORKFLOW.md)
+
 MirandaOrganizer es una aplicación orientada a usuarios que buscan organizar y administrar sus compras semanales de manera sencilla, clara y eficiente. Está diseñada considerando especialmente las necesidades de personas que valoran la planificación y el orden en sus actividades cotidianas.
 
 Su principal elemento diferenciador frente a otras aplicaciones de listas de compras es que su desarrollo se basa en las opiniones, necesidades y experiencias de los propios usuarios, buscando ofrecer una herramienta práctica, accesible y adaptada a sus hábitos de compra.
