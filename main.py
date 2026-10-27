@@ -73,9 +73,10 @@ from kivy.utils import escape_markup, get_color_from_hex
 
 from kivymd.app import MDApp
 
-# Cuando aparece el teclado en el móvil, la pantalla sube lo justo para
-# que el campo que se está escribiendo quede visible.
-Window.softinput_mode = "below_target"
+# Cuando aparece el teclado en el móvil, la interfaz se encoge para caber
+# sobre él. Así el bloc de notas (que ocupa todo el alto) se ajusta al espacio
+# que queda en vez de empujar toda la pantalla hacia arriba.
+Window.softinput_mode = "resize"
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Paleta de colores: modo oscuro (por defecto) y modo claro
@@ -103,7 +104,7 @@ PALETTE_LIGHT = {
     "SURFACE_ALT": "#ECEEF2",
     "NAV_BG": "#FFFFFF",
     "BORDER": "#E1E3E8",
-    "ACCENT": "#BEF24B",
+    "ACCENT": "#5AE936",
     "ACCENT_FG": "#0A0B0F",
     "TEXT": "#14161B",
     "MUTED": "#5B5F6B",
@@ -148,9 +149,9 @@ TRANSLATIONS = {
         "edit_list_title": "Editar lista",
         "edit_list_sub": "Cambia los datos de tu lista.",
         "list_name": "Nombre de la lista",
-        "list_name_hint": "Ej: Compra semanal",
-        "store": "Comercio",
-        "store_hint": "Ej: Líder",
+        "list_name_hint": ". . .",
+        "store": "Supermercado",
+        "store_hint": ". . .",
         "list_type": "Tipo de lista",
         "checklist": "Checklist",
         "checklist_desc": "Marca lo que ya compraste.",
@@ -166,6 +167,7 @@ TRANSLATIONS = {
         # Detalle
         "add_product_hint": "Agregar producto",
         "price_hint": "$",
+        "total_label": "Total de la compra",
         "notes_hint": "Escribe tus notas aquí...",
         # Ajustes
         "settings": "Ajustes",
@@ -198,9 +200,9 @@ TRANSLATIONS = {
         "edit_list_title": "Edit list",
         "edit_list_sub": "Change your list details.",
         "list_name": "List name",
-        "list_name_hint": "E.g. Weekly shop",
-        "store": "Store",
-        "store_hint": "E.g. Lider",
+        "list_name_hint": ". . .",
+        "store": "Supermarket",
+        "store_hint": ". . .",
         "list_type": "List type",
         "checklist": "Checklist",
         "checklist_desc": "Tick off what you bought.",
@@ -216,6 +218,7 @@ TRANSLATIONS = {
         # Detail
         "add_product_hint": "Add product",
         "price_hint": "$",
+        "total_label": "Shopping total",
         "notes_hint": "Write your notes here...",
         # Settings
         "settings": "Settings",
@@ -584,6 +587,7 @@ class ShoppingListApp(MDApp):
     done_items = NumericProperty(0)
     progress = NumericProperty(0)  # 0..1
     percent = NumericProperty(0)  # 0..100
+    total_text = StringProperty("$0")  # total de la compra, p. ej. "$7.770"
     new_item_name = StringProperty("")
     new_item_price = StringProperty("")
 
@@ -776,7 +780,7 @@ class ShoppingListApp(MDApp):
                 return
             lst["name"] = name
             lst["store"] = store
-            lst["type"] = self.form_type
+            # El tipo de lista no se cambia al editar (se elige solo al crear).
             self._touch(lst)
             self.save_now()
             self.refresh_lists()
@@ -969,6 +973,7 @@ class ShoppingListApp(MDApp):
         done = sum(1 for it in items if it["done"])
         self.total_items = total
         self.done_items = done
+        self.total_text = format_price(sum(int(clean_price(it["price"]) or 0) for it in items)) or "$0"
         self.progress = done / total if total else 0
         self.percent = int(round(self.progress * 100))
 

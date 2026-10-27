@@ -746,34 +746,43 @@
                         text: app.form_store
                         on_text: app.form_store = self.text
                         on_submit: app.submit_form()
-                    Widget:
-                        size_hint_y: None
-                        height: dp(4)
-                    Txt:
-                        text: app.tr(app.lang, "list_type")
-                        bold: True
-                        font_size: sp(14.5)
+                    # Tipo de lista: solo se elige al crear. Al editar, el
+                    # bloque completo se oculta (alto 0, sin toques).
                     BoxLayout:
+                        orientation: "vertical"
                         size_hint_y: None
-                        height: dp(122)
-                        spacing: dp(12)
-                        TypeOption:
-                            key: "checklist"
-                            icon: "format-list-checks"
-                            title: app.tr(app.lang, "checklist")
-                            desc: app.tr(app.lang, "checklist_desc")
-                            selected: app.form_type == self.key
-                            on_release: app.form_type = self.key
-                        TypeOption:
-                            key: "notepad"
-                            icon: "note-edit-outline"
-                            title: app.tr(app.lang, "notepad")
-                            desc: app.tr(app.lang, "notepad_desc")
-                            selected: app.form_type == self.key
-                            on_release: app.form_type = self.key
-                    Widget:
-                        size_hint_y: None
-                        height: dp(4)
+                        height: self.minimum_height if app.form_mode == "new" else 0
+                        opacity: 1 if app.form_mode == "new" else 0
+                        disabled: app.form_mode != "new"
+                        spacing: dp(10)
+                        Widget:
+                            size_hint_y: None
+                            height: dp(4)
+                        Txt:
+                            text: app.tr(app.lang, "list_type")
+                            bold: True
+                            font_size: sp(14.5)
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(122)
+                            spacing: dp(12)
+                            TypeOption:
+                                key: "checklist"
+                                icon: "format-list-checks"
+                                title: app.tr(app.lang, "checklist")
+                                desc: app.tr(app.lang, "checklist_desc")
+                                selected: app.form_type == self.key
+                                on_release: app.form_type = self.key
+                            TypeOption:
+                                key: "notepad"
+                                icon: "note-edit-outline"
+                                title: app.tr(app.lang, "notepad")
+                                desc: app.tr(app.lang, "notepad_desc")
+                                selected: app.form_type == self.key
+                                on_release: app.form_type = self.key
+                        Widget:
+                            size_hint_y: None
+                            height: dp(4)
                     FormButton:
                         text: app.tr(app.lang, "create_list" if app.form_mode == "new" else "save_changes")
                         icon: "check"
@@ -820,7 +829,7 @@
     name: "detalle"
     BoxLayout:
         orientation: "vertical"
-        padding: dp(24), dp(56), dp(24), dp(14)
+        padding: dp(24), dp(56), dp(24), dp(24)
         BoxLayout:
             size_hint_y: None
             height: dp(52)
@@ -896,12 +905,15 @@
                     # Si el contenido cabe, el scroll vuelve arriba: un
                     # ScrollView con scroll_y = 0 pega el contenido abajo.
                     on_height: app.settle_scroll()
+            # El cuadro de texto ocupa todo el alto disponible. Sin padding en
+            # la tarjeta: el margen interno lo pone el propio campo, así que
+            # cualquier toque dentro de la tarjeta enfoca el texto.
             Card:
                 size_hint_y: 1 if app.detail_kind == "notepad" else None
                 height: 0
                 opacity: 1 if app.detail_kind == "notepad" else 0
                 disabled: app.detail_kind != "notepad"
-                padding: dp(18)
+                padding: 0
                 fill_color: app.surface_color
                 border_color: app.border_color
                 radius: dp(20)
@@ -910,14 +922,34 @@
                     on_text: app.set_notes(self.text)
                     hint_text: app.tr(app.lang, "notes_hint")
                     multiline: True
+                    padding: dp(18), dp(18), dp(18), dp(18)
+        # Total de la compra (solo Checklist): suma de los precios de todos
+        # los artículos de la lista.
+        BoxLayout:
+            size_hint_y: None
+            height: dp(52) if app.detail_kind == "checklist" else 0
+            opacity: 1 if app.detail_kind == "checklist" else 0
+            padding: dp(4), dp(18), dp(4), 0
+            Txt:
+                text: app.tr(app.lang, "total_label")
+                font_size: sp(15)
+                bold: True
+                color: app.muted_color
+                pos_hint: {"center_y": .5}
+            TxtAuto:
+                text: app.total_text
+                font_size: sp(22)
+                bold: True
+                color: app.accent_color
+                pos_hint: {"center_y": .5}
         # Agregar artículo (Checklist): nombre y precio comparten el ancho
         # disponible en proporción, el botón mantiene su tamaño.
         BoxLayout:
             size_hint_y: None
-            height: dp(72) if app.detail_kind == "checklist" else 0
+            height: dp(68) if app.detail_kind == "checklist" else 0
             opacity: 1 if app.detail_kind == "checklist" else 0
             disabled: app.detail_kind != "checklist"
-            padding: 0, dp(18), 0, 0
+            padding: 0, dp(14), 0, 0
             spacing: dp(8)
             QuickInput:
                 size_hint_x: .62

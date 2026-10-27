@@ -38,19 +38,24 @@
           "title": "arroz",
           "price": "1000",
           "done": false
+        },
+        {
+          "title": "pescao",
+          "price": "5000",
+          "done": false
         }
       ],
       "notes": "Pollo 1kg\n1 Bebida\nCondoms"
     },
     {
       "id": "e6c9b3f551dc4bbb93d0c600701dbe00",
-      "name": "ola",
+      "name": "HALLO",
       "store": "Acuenta",
       "type": "notepad",
       "created": "2026-10-27",
       "updated": "2026-10-27",
       "items": [],
-      "notes": "huevo\ncebolla\nensalada\npapas fritas"
+      "notes": "huevo\ncebolla\nensalada\npapas fritas\njdiawjdkaw\nfjijfoawjfa\nfojofjwoaj"
     }
   ]
 }
