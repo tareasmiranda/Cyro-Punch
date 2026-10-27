@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "lists": [
+    {
+      "id": "6f305dd7afb44fe39a0b4fbe74574135",
+      "name": "Tocomples",
+      "store": "Santaisabel",
+      "type": "checklist",
+      "created": "2026-10-27",
+      "updated": "2026-10-27",
+      "items": [
+        {
+          "title": "palta",
+          "price": "2000",
+          "done": false
+        },
+        {
+          "title": "tomate",
+          "price": "1500",
+          "done": false
+        },
+        {
+          "title": "vienesas",
+          "price": "2990",
+          "done": false
+        },
+        {
+          "title": "pan",
+          "price": "2000",
+          "done": false
+        },
+        {
+          "title": "mayo",
+          "price": "2500",
+          "done": false
+        },
+        {
+          "title": "arroz",
+          "price": "1000",
+          "done": false
+        }
+      ],
+      "notes": "Pollo 1kg\n1 Bebida\nCondoms"
+    },
+    {
+      "id": "e6c9b3f551dc4bbb93d0c600701dbe00",
+      "name": "ola",
+      "store": "Acuenta",
+      "type": "notepad",
+      "created": "2026-10-27",
+      "updated": "2026-10-27",
+      "items": [],
+      "notes": "huevo\ncebolla\nensalada\npapas fritas"
+    }
+  ]
+}
