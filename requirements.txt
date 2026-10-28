@@ -21,3 +21,4 @@ pywin32==312
 requests==2.34.2
 urllib3==2.7.0
 plyer==2.1.0
+winotify

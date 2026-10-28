@@ -3,43 +3,36 @@ Lista de compras · Kivy + KivyMD
 =================================
 
 Pantallas:
-  1. Inicio          (saludo + botón "Nueva lista")
-  2. Listas          ("Mis listas" + una tarjeta por cada lista creada)
-  3. Nueva / Editar  (formulario: nombre, comercio y tipo de lista)
-  4. Detalle         (progreso + artículos con checkbox, o bloc de notas)
-  5. Ajustes         (tema oscuro, notificaciones, idioma)
+  1. Login           (crear cuenta la primera vez / iniciar sesión)
+  2. Inicio          (saludo + botón "Nueva lista")
+  3. Listas          ("Mis listas" + una tarjeta por cada lista creada)
+  4. Nueva / Editar  (formulario: nombre, comercio y tipo de lista)
+  5. Detalle         (progreso + artículos con checkbox, o bloc de notas)
+  6. Ajustes         (tema oscuro, notificaciones, idioma, cerrar sesión)
 
-Funcionalidad:
-  - Los botones "Nueva lista" (Inicio) y "Agregar" (Listas) abren el mismo
-    formulario. Al crear la lista se abre su detalle.
-  - Una lista puede ser "Checklist" (artículos que se marcan) o "Notepad"
-    (texto libre). Se puede editar su nombre, comercio y tipo, agregar y
-    quitar artículos, y eliminar la lista completa.
-  - Todo se guarda en un archivo JSON ("listas.json") y se recupera al
-    abrir la aplicación de nuevo. En escritorio queda junto a este archivo;
-    en Android/iOS, en la carpeta de datos privada de la app.
+Autenticación:
+  - Los usuarios se guardan en "usuarios.json" (PBKDF2-SHA256 + salt).
+  - La primera vez que se abre la app no hay usuarios y el formulario se
+    muestra como "Crear cuenta". A partir de ahí, "Iniciar sesión".
+  - La sesión se recuerda: al volver a abrir la app se entra directamente
+    a Inicio. "Cerrar sesión" (en Ajustes) vuelve a la pantalla de login.
 
-Instalación (dentro del entorno virtual, en Windows):
-    pip install kivy kivymd
-Ejecución:
-    python main.py
+Notificaciones:
+  - Al entrar a la app con listas pendientes se muestra una notificación
+    local (ver noti.py). En Ajustes → Notificaciones se puede probar.
 
-Opcional: si copias Inter-Regular.ttf e Inter-Bold.ttf en una carpeta
-"fonts" junto a este archivo, la app usará la tipografía Inter (la del
-diseño). Si no existen, usa Roboto, que ya viene con Kivy.
-
-Este archivo contiene la lógica de negocio y el backend de la app.
-El diseño visual y la jerarquía de widgets viven en "interfaz.kv",
-que se carga desde el método build() de la aplicación.
+Instalación:
+    pip install kivy kivymd plyer
+    Windows:  pip install winotify   (o win10toast)
+    Linux:    sudo apt install libnotify-bin
 """
 
+import hashlib
 import json
 import os
+import secrets
 import uuid
 from datetime import date
-
-from plyer import notification
-
 
 from kivy.config import Config
 from kivy.utils import platform
@@ -77,32 +70,29 @@ from kivy.utils import escape_markup, get_color_from_hex
 
 from kivymd.app import MDApp
 
-# LA NOTIIIIIII
-from noti import notify_pending_lists
+from noti import notify_pending_lists, notify_test
 
 # Cuando aparece el teclado en el móvil, la interfaz se encoge para caber
-# sobre él. Así el bloc de notas (que ocupa todo el alto) se ajusta al espacio
-# que queda en vez de empujar toda la pantalla hacia arriba.
+# sobre él. Así el bloc de notas (que ocupa todo el alto) se ajusta al
+# espacio que queda en vez de empujar toda la pantalla hacia arriba.
 Window.softinput_mode = "resize"
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Paleta de colores: modo oscuro (por defecto) y modo claro
 # ─────────────────────────────────────────────────────────────────────────
-# Ambos modos usan los mismos roles de color; el verde lima de acento y el
-# color de texto sobre él son idénticos, solo cambian los tonos neutros.
 PALETTE_DARK = {
-    "BG": "#0A0B0F",  # fondo de pantalla
-    "SURFACE": "#14161B",  # tarjetas y filas
-    "SURFACE_ALT": "#1C1F26",  # botón atrás, ícono de la tarjeta, píldora activa
-    "NAV_BG": "#0E1015",  # barra de navegación inferior
-    "BORDER": "#23262E",  # borde de tarjetas
-    "ACCENT": "#BEF24B",  # verde lima
-    "ACCENT_FG": "#0A0B0F",  # texto/íconos sobre el verde lima
-    "TEXT": "#FFFFFF",  # texto principal
-    "MUTED": "#9599A4",  # texto secundario
-    "SUBTLE": "#6E7280",  # íconos y etiquetas inactivas de la barra
-    "TRACK": "#2A2D35",  # riel de la barra de progreso / interruptor apagado
-    "CHECK_BORDER": "#7F8390",  # borde del checkbox vacío
+    "BG": "#0A0B0F",
+    "SURFACE": "#14161B",
+    "SURFACE_ALT": "#1C1F26",
+    "NAV_BG": "#0E1015",
+    "BORDER": "#23262E",
+    "ACCENT": "#BEF24B",
+    "ACCENT_FG": "#0A0B0F",
+    "TEXT": "#FFFFFF",
+    "MUTED": "#9599A4",
+    "SUBTLE": "#6E7280",
+    "TRACK": "#2A2D35",
+    "CHECK_BORDER": "#7F8390",
 }
 
 PALETTE_LIGHT = {
@@ -126,9 +116,6 @@ def mix(color_a, color_b, t):
     return [a + (b - a) * t for a, b in zip(color_a, color_b)]
 
 
-# Nombres disponibles dentro del código KV (dp/sp y mix). Los colores del
-# tema viven como propiedades de la App (app.bg_color, app.text_color...)
-# para que el KV reaccione cuando se alterna entre modo oscuro y claro.
 global_idmap.update({"dp": dp, "sp": sp, "mix": mix})
 
 
@@ -150,7 +137,6 @@ TRANSLATIONS = {
         "completed_of": "{} de {} completados",
         "no_lists": "Aún no tienes listas",
         "no_lists_sub": "Crea la primera con el botón Agregar.",
-        # Formulario
         "new_list_title": "Nueva lista",
         "new_list_sub": "Organiza tu próxima compra a tu manera.",
         "edit_list_title": "Editar lista",
@@ -171,12 +157,10 @@ TRANSLATIONS = {
         "confirm_delete": "Toca de nuevo para eliminar",
         "info_new": "Después podrás agregar productos a tu nueva lista.",
         "info_edit": "Los cambios se guardan automáticamente en tu dispositivo.",
-        # Detalle
         "add_product_hint": "Agregar producto",
         "price_hint": "$",
         "total_label": "Total de la compra",
         "notes_hint": "Escribe tus notas aquí...",
-        # Ajustes
         "settings": "Ajustes",
         "settings_sub": "Personaliza tu experiencia de compra.",
         "dark_mode": "Tema oscuro",
@@ -186,6 +170,19 @@ TRANSLATIONS = {
         "nav_home": "Inicio",
         "nav_lists": "Listas",
         "nav_settings": "Ajustes",
+        # Login
+        "login_title": "Bienvenido",
+        "login_subtitle_login": "Inicia sesión para ver tus listas",
+        "login_subtitle_register": "Crea tu cuenta para empezar",
+        "username_hint": "Usuario",
+        "password_hint": "Contraseña",
+        "login": "Iniciar sesión",
+        "create_account": "Crear cuenta",
+        "logout": "Cerrar sesión",
+        "auth_empty": "Completa usuario y contraseña.",
+        "auth_user_not_found": "Usuario no encontrado.",
+        "auth_wrong_password": "Contraseña incorrecta.",
+        "auth_user_exists": "Ese usuario ya existe.",
     },
     "en": {
         "greeting": "Hey, how's\nyour day?",
@@ -201,7 +198,6 @@ TRANSLATIONS = {
         "completed_of": "{} of {} completed",
         "no_lists": "You have no lists yet",
         "no_lists_sub": "Create your first one with the Add button.",
-        # Form
         "new_list_title": "New list",
         "new_list_sub": "Organize your next shop your own way.",
         "edit_list_title": "Edit list",
@@ -222,12 +218,10 @@ TRANSLATIONS = {
         "confirm_delete": "Tap again to delete",
         "info_new": "You can add products to your new list afterwards.",
         "info_edit": "Changes are saved automatically on your device.",
-        # Detail
         "add_product_hint": "Add product",
         "price_hint": "$",
         "total_label": "Shopping total",
         "notes_hint": "Write your notes here...",
-        # Settings
         "settings": "Settings",
         "settings_sub": "Customize your shopping experience.",
         "dark_mode": "Dark mode",
@@ -237,6 +231,19 @@ TRANSLATIONS = {
         "nav_home": "Home",
         "nav_lists": "Lists",
         "nav_settings": "Settings",
+        # Login
+        "login_title": "Welcome",
+        "login_subtitle_login": "Sign in to view your lists",
+        "login_subtitle_register": "Create your account to get started",
+        "username_hint": "Username",
+        "password_hint": "Password",
+        "login": "Sign in",
+        "create_account": "Create account",
+        "logout": "Sign out",
+        "auth_empty": "Fill in username and password.",
+        "auth_user_not_found": "User not found.",
+        "auth_wrong_password": "Wrong password.",
+        "auth_user_exists": "That username is taken.",
     },
 }
 
@@ -253,7 +260,6 @@ MONTHS = {
 
 
 def format_date(iso, lang, weekday=True):
-    """Convierte una fecha ISO en texto legible según el idioma."""
     try:
         d = date.fromisoformat(str(iso)[:10])
     except ValueError:
@@ -270,12 +276,10 @@ def format_date(iso, lang, weekday=True):
 
 
 def clean_price(value):
-    """Deja solo los dígitos de un precio (pesos, sin decimales)."""
     return "".join(ch for ch in str(value or "") if ch.isdigit())
 
 
 def format_price(value):
-    """1990 → "$1.990" (separador de miles con punto). Vacío si no hay precio."""
     digits = clean_price(value)
     if not digits:
         return ""
@@ -283,22 +287,23 @@ def format_price(value):
 
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Persistencia (archivo JSON)
+#  Persistencia (archivos JSON)
 # ─────────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILENAME = "listas.json"
+USERS_FILENAME = "usuarios.json"
 LIST_TYPES = ("checklist", "notepad")
 
-# Ruta al archivo .kv que define el diseño y la jerarquía visual.
 KV_PATH = os.path.join(BASE_DIR, "interfaz.kv")
 
 
-def normalize_list(raw):
-    """Valida una lista leída del JSON y completa lo que falte.
+def _hash_password(password, salt):
+    return hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100_000
+    ).hex()
 
-    Devuelve None si el dato no se puede aprovechar. Así un archivo
-    editado a mano o dañado parcialmente no rompe la aplicación.
-    """
+
+def normalize_list(raw):
     if not isinstance(raw, dict):
         return None
     today = date.today().isoformat()
@@ -310,8 +315,6 @@ def normalize_list(raw):
                 items.append(
                     {
                         "title": str(it["title"]),
-                        # Las listas guardadas con "quantity" (versión anterior)
-                        # quedan sin precio: una cantidad no es un precio.
                         "price": clean_price(it.get("price", "")),
                         "done": bool(it.get("done", False)),
                     }
@@ -333,7 +336,6 @@ def normalize_list(raw):
 #  Tipografía
 # ─────────────────────────────────────────────────────────────────────────
 def register_fonts():
-    """Usa Inter si está en ./fonts; de lo contrario, Roboto (incluida)."""
     regular = os.path.join(BASE_DIR, "fonts", "Inter-Regular.ttf")
     bold = os.path.join(BASE_DIR, "fonts", "Inter-Bold.ttf")
     if os.path.exists(regular) and os.path.exists(bold):
@@ -343,76 +345,62 @@ def register_fonts():
 
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Widgets reutilizables (el estilo está definido en interfaz.kv)
+#  Widgets reutilizables
 # ─────────────────────────────────────────────────────────────────────────
 class Pressable(ButtonBehavior):
-    """Mezcla que da retroalimentación visual al presionar."""
+    pass
 
 
 class BaseTxt(Label):
-    """Etiqueta base con la tipografía y el color por defecto."""
+    pass
 
 
 class Txt(BaseTxt):
-    """Texto que ocupa todo el ancho disponible y ajusta su altura."""
+    pass
 
 
 class TxtAuto(BaseTxt):
-    """Texto que se ajusta exactamente a su contenido (ancho y alto)."""
+    pass
 
 
 class Card(BoxLayout):
-    """Contenedor con esquinas redondeadas, relleno y borde."""
-
     fill_color = ColorProperty([0, 0, 0, 0])
     border_color = ColorProperty([0, 0, 0, 0])
     radius = NumericProperty(dp(20))
 
 
 class TapCard(Pressable, Card):
-    """Tarjeta que se puede tocar."""
+    pass
 
 
 class PillButton(Pressable, AnchorLayout):
-    """Botón verde lima en forma de píldora, con ícono y texto."""
-
     text = StringProperty()
     icon = StringProperty("plus")
 
 
 class FormButton(Pressable, AnchorLayout):
-    """Botón verde lima de ancho completo (p. ej. "Crear lista")."""
-
     text = StringProperty()
     icon = StringProperty("check")
 
 
 class AddButton(Pressable, AnchorLayout):
-    """Botón cuadrado verde lima con un ícono (agregar artículo)."""
-
     icon = StringProperty("plus")
 
 
 class LinkButton(Pressable, AnchorLayout):
-    """Botón de solo texto (Cancelar, Eliminar lista)."""
-
     text = StringProperty()
     tint = ColorProperty([1, 1, 1, 1])
 
 
 class IconButton(Pressable, AnchorLayout):
-    """Botón cuadrado redondeado con un ícono (p. ej. el botón atrás)."""
-
     icon = StringProperty("arrow-left")
 
 
 class DeleteButton(Pressable, AnchorLayout):
-    """Pequeña "x" al final de cada artículo para quitarlo."""
+    pass
 
 
 class NavItem(Pressable, AnchorLayout):
-    """Elemento de la barra inferior; el activo se resalta con una píldora."""
-
     key = StringProperty()
     icon = StringProperty()
     text = StringProperty()
@@ -420,29 +408,21 @@ class NavItem(Pressable, AnchorLayout):
 
 
 class SettingRow(TapCard):
-    """Fila de la pantalla de ajustes (ícono + texto + control a la derecha)."""
-
     icon = StringProperty()
     text = StringProperty()
 
 
 class CheckMark(Widget):
-    """Casilla redondeada; vacía o rellena en verde lima con una palomita."""
-
     active = BooleanProperty(False)
 
 
 class SoftProgress(Widget):
-    """Barra de progreso delgada con extremos redondeados (valor 0 a 1)."""
-
     value = NumericProperty(0)
 
 
 class ToggleSwitch(Pressable, Widget):
-    """Interruptor con pista verde lima y perilla oscura."""
-
     active = BooleanProperty(True)
-    progress = NumericProperty(1)  # 0 = apagado, 1 = encendido (animado)
+    progress = NumericProperty(1)
 
     def on_release(self):
         self.active = not self.active
@@ -450,8 +430,6 @@ class ToggleSwitch(Pressable, Widget):
 
 
 class FieldBase(Card):
-    """Base de los campos de texto: el texto vive en `text`."""
-
     text = StringProperty()
     hint = StringProperty()
     error = BooleanProperty(False)
@@ -459,27 +437,18 @@ class FieldBase(Card):
     __events__ = ("on_submit",)
 
     def on_submit(self):
-        """Se dispara al presionar Enter dentro del campo."""
+        pass
 
 
 class InputField(FieldBase):
-    """Campo de texto con ícono a la izquierda (formulario)."""
-
     icon = StringProperty("format-list-bulleted")
 
 
 class QuickInput(FieldBase):
-    """Campo de texto compacto, sin ícono (fila de agregar artículo).
-
-    Con `numeric: True` solo acepta dígitos (y abre el teclado numérico).
-    """
-
     numeric = BooleanProperty(False)
 
 
 class TypeOption(Pressable, Card):
-    """Opción de tipo de lista (Checklist / Notepad) con botón de radio."""
-
     key = StringProperty()
     icon = StringProperty()
     title = StringProperty()
@@ -488,8 +457,6 @@ class TypeOption(Pressable, Card):
 
 
 class ListCard(TapCard):
-    """Tarjeta de una lista en la pantalla "Mis listas"."""
-
     list_id = StringProperty()
     name = StringProperty()
     subtitle = StringProperty()
@@ -498,18 +465,16 @@ class ListCard(TapCard):
 
 
 class EmptyState(BoxLayout):
-    """Mensaje que se muestra mientras no existe ninguna lista."""
+    pass
 
 
 class ShoppingItem(Pressable, Card):
-    """Fila de un artículo: casilla, nombre, precio y botón para quitarlo."""
-
     title = StringProperty()
-    price = StringProperty()  # solo dígitos, tal como se guarda en el JSON
-    price_text = StringProperty()  # "$1.990", lo que se muestra
+    price = StringProperty()
+    price_text = StringProperty()
     done = BooleanProperty(False)
     title_markup = StringProperty()
-    item = ObjectProperty(None, allownone=True)  # diccionario guardado en el JSON
+    item = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -539,28 +504,16 @@ class ShoppingItem(Pressable, Card):
 
 
 class LangOption(Pressable, BoxLayout):
-    """Una opción dentro del menú desplegable de idioma."""
-
     code = StringProperty()
     label = StringProperty()
     selected = BooleanProperty(False)
 
 
 class LanguageDropDown(DropDown):
-    """Menú desplegable con los idiomas disponibles (Español / English).
-
-    Su contenido (las dos opciones) se define en interfaz.kv. Se abre
-    alineado al borde derecho del widget que lo invoca, con un breve
-    desvanecimiento + deslizamiento hacia su posición final.
-    """
-
     def _reposition(self, *args):
         super()._reposition(*args)
         if self.attach_to is None:
             return
-        # El comportamiento por defecto alinea el menú al borde IZQUIERDO
-        # del widget ancla; lo recorremos para que quede pegado al borde
-        # DERECHO (donde están el texto del idioma actual y la flecha).
         right_edge = self.attach_to.to_window(self.attach_to.right, 0)[0]
         x = right_edge - self.width
         self.x = max(x, 0)
@@ -578,35 +531,38 @@ class LanguageDropDown(DropDown):
 # ─────────────────────────────────────────────────────────────────────────
 class ShoppingListApp(MDApp):
     font_name = StringProperty("Roboto")
-    current_tab = StringProperty("inicio")  # pestaña resaltada en la barra
-    lang = StringProperty("es")  # "es" o "en"
-    theme_dark = BooleanProperty(True)  # True = oscuro, False = claro
+    current_tab = StringProperty("inicio")
+    lang = StringProperty("es")
+    theme_dark = BooleanProperty(True)
 
-    # Resumen de listas (pantalla "Mis listas")
     lists_count = NumericProperty(0)
 
-    # Lista abierta en la pantalla de detalle
     detail_name = StringProperty("")
     detail_meta = StringProperty("")
     detail_kind = StringProperty("checklist")
     detail_notes = StringProperty("")
     total_items = NumericProperty(0)
     done_items = NumericProperty(0)
-    progress = NumericProperty(0)  # 0..1
-    percent = NumericProperty(0)  # 0..100
-    total_text = StringProperty("$0")  # total de la compra, p. ej. "$7.770"
+    progress = NumericProperty(0)
+    percent = NumericProperty(0)
+    total_text = StringProperty("$0")
     new_item_name = StringProperty("")
     new_item_price = StringProperty("")
 
-    # Formulario de crear / editar lista
-    form_mode = StringProperty("new")  # "new" o "edit"
+    form_mode = StringProperty("new")
     form_name = StringProperty("")
     form_store = StringProperty("")
     form_type = StringProperty("checklist")
-    delete_armed = BooleanProperty(False)  # ya se tocó una vez "Eliminar lista"
+    delete_armed = BooleanProperty(False)
 
-    # Colores del tema activo (arrancan en modo oscuro). El KV los usa como
-    # app.xxx_color; al alternar el tema se animan hacia la otra paleta.
+    # Autenticación
+    auth_username = StringProperty("")
+    auth_password = StringProperty("")
+    auth_error = StringProperty("")
+    current_user = StringProperty("")
+    has_users = BooleanProperty(False)
+
+    # Colores del tema activo
     bg_color = ColorProperty(get_color_from_hex(PALETTE_DARK["BG"]))
     surface_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE"]))
     surface_alt_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE_ALT"]))
@@ -622,6 +578,7 @@ class ShoppingListApp(MDApp):
 
     SCREEN_ORDER = ("inicio", "listas", "detalle", "ajustes")
 
+    # ── Ciclo de vida ───────────────────────────────────────────────────
     def build(self):
         self.title = "Lista de compras"
         self.theme_cls.theme_style = "Dark"
@@ -632,47 +589,53 @@ class ShoppingListApp(MDApp):
         Window.bind(on_resize=lambda *_: self._schedule_ui_check())
 
         self.data_file = self._data_path()
+        self.users_file = self._users_path()
         self.lists = self.load_lists()
+
+        # Sesión recordada
+        _users = self.load_users()
+        _accounts = _users.get("users", {}) if isinstance(_users, dict) else {}
+        self.has_users = bool(_accounts)
+        saved = _users.get("current_user", "") if isinstance(_users, dict) else ""
+        self.current_user = saved if saved in _accounts else ""
+
         self.current_id = None
         self._form_origin = "listas"
         self._disarm_event = None
+
         root = Builder.load_file(KV_PATH)
-        # Cuerpo del detalle: se crean ambos, pero en pantalla hay siempre uno
-        # solo (ver _show_body). Así no se depende de ocultar widgets con
-        # tamaño 0, opacidad o "disabled".
         self.items_scroll = Factory.ItemsScroll()
         self.notes_card = Factory.NotesCard()
+
+        # Arranque: a Inicio si hay sesión, si no al Login
+        root.ids.sm.current = "inicio" if self.current_user else "login"
         return root
 
     def on_start(self):
         sm = self.root.ids.sm
         sm.transition = SlideTransition(duration=0.2)
-        self.refresh_lists()
-        notify_pending_lists(self.lists, self.lang)   # <-- new call
+        if self.current_user:
+            self.refresh_lists()
+            notify_pending_lists(self.lists, self.lang)
 
     def on_pause(self):
         self.save_now()
-        return True  # permite que la app siga viva en segundo plano (Android)
+        return True
 
     def on_resume(self):
-        # Al volver de segundo plano se revisa que la interfaz esté sana.
-        self.refresh_lists()
-        self.ui_check()
+        if self.current_user:
+            self.refresh_lists()
+            self.ui_check()
 
     def on_stop(self):
         self.save_now()
 
-    # ── Persistencia ────────────────────────────────────────────────────
+    # ── Persistencia: listas ────────────────────────────────────────────
     def _data_path(self):
-        """Dónde vive el JSON: carpeta privada en móvil, junto al código en PC."""
-        if platform in ("android", "ios"):
-            folder = self.user_data_dir
-        else:
-            folder = BASE_DIR
+        folder = self.user_data_dir if platform in ("android", "ios") else BASE_DIR
         return os.path.join(folder, DATA_FILENAME)
 
     def load_lists(self):
-        """Lee las listas guardadas. Sin archivo (o dañado) arranca vacío."""
         try:
             with open(self.data_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -680,7 +643,6 @@ class ShoppingListApp(MDApp):
             return []
         except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             Logger.error(f"Listas: no se pudo leer {self.data_file}: {exc}")
-            # Se conserva una copia del archivo dañado para no perder datos.
             try:
                 os.replace(self.data_file, self.data_file + ".dañado")
             except OSError:
@@ -691,7 +653,6 @@ class ShoppingListApp(MDApp):
         return [lst for lst in lists if lst is not None]
 
     def save_now(self, *_):
-        """Escribe todas las listas en el JSON (escritura atómica)."""
         Clock.unschedule(self.save_now)
         payload = {"version": 1, "lists": self.lists}
         tmp_path = self.data_file + ".tmp"
@@ -703,9 +664,97 @@ class ShoppingListApp(MDApp):
             Logger.error(f"Listas: no se pudo guardar {self.data_file}: {exc}")
 
     def schedule_save(self, delay=0.6):
-        """Guarda poco después; útil mientras se escribe en el bloc de notas."""
         Clock.unschedule(self.save_now)
         Clock.schedule_once(self.save_now, delay)
+
+    # ── Persistencia: usuarios ──────────────────────────────────────────
+    def _users_path(self):
+        folder = self.user_data_dir if platform in ("android", "ios") else BASE_DIR
+        return os.path.join(folder, USERS_FILENAME)
+
+    def load_users(self):
+        try:
+            with open(self.users_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except FileNotFoundError:
+            return {}
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            Logger.error(f"Usuarios: no se pudo leer {self.users_file}: {exc}")
+            return {}
+
+    def save_users(self, data):
+        tmp_path = self.users_file + ".tmp"
+        try:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, self.users_file)
+        except OSError as exc:
+            Logger.error(f"Usuarios: no se pudo guardar {self.users_file}: {exc}")
+
+    # ── Login / Registro ────────────────────────────────────────────────
+    def submit_auth(self):
+        self.auth_error = ""
+        username = self.auth_username.strip()
+        password = self.auth_password
+
+        if not username or not password:
+            self.auth_error = self.tr(self.lang, "auth_empty")
+            return
+
+        data = self.load_users()
+        accounts = data.get("users", {})
+        if not isinstance(accounts, dict):
+            accounts = {}
+
+        if not accounts:
+            # Primer uso → crear cuenta.
+            salt = secrets.token_hex(16)
+            accounts[username] = {
+                "salt": salt,
+                "hash": _hash_password(password, salt),
+            }
+            data["users"] = accounts
+            data["current_user"] = username
+            self.save_users(data)
+            self.has_users = True
+            self.current_user = username
+            self._enter_app()
+            return
+
+        record = accounts.get(username)
+        if record is None:
+            self.auth_error = self.tr(self.lang, "auth_user_not_found")
+            return
+        if _hash_password(password, record.get("salt", "")) != record.get("hash", ""):
+            self.auth_error = self.tr(self.lang, "auth_wrong_password")
+            return
+
+        data["current_user"] = username
+        self.save_users(data)
+        self.current_user = username
+        self._enter_app()
+
+    def _enter_app(self):
+        self.auth_password = ""
+        self.auth_error = ""
+        self.refresh_lists()
+        self.go("inicio")
+        notify_pending_lists(self.lists, self.lang)
+
+    def do_logout(self):
+        data = self.load_users()
+        data.pop("current_user", None)
+        self.save_users(data)
+        self.current_user = ""
+        self.auth_username = ""
+        self.auth_password = ""
+        self.auth_error = ""
+        self.go("login")
+
+    def test_notification(self):
+        """Dispara una notificación de prueba (botón de Ajustes)."""
+        notify_test(self.lang)
 
     # ── Acceso a las listas ─────────────────────────────────────────────
     def get_list(self, list_id):
@@ -728,9 +777,11 @@ class ShoppingListApp(MDApp):
             return
         Window.release_all_keyboards()
         if screen_name == "nueva":
-            direction = "up"  # el formulario sube como una ventana
+            direction = "up"
         elif sm.current == "nueva":
             direction = "down"
+        elif sm.current == "login" or screen_name == "login":
+            direction = "up"
         else:
             order = self.SCREEN_ORDER
             forward = order.index(screen_name) > order.index(sm.current)
@@ -738,14 +789,17 @@ class ShoppingListApp(MDApp):
         sm.transition.direction = direction
         sm.current = screen_name
         self._schedule_ui_check()
-        # El detalle y el formulario pertenecen a la pestaña "Listas".
-        self.current_tab = "listas" if screen_name in ("detalle", "nueva") else screen_name
+        if screen_name in ("detalle", "nueva"):
+            self.current_tab = "listas"
+        elif screen_name in ("inicio", "listas", "ajustes"):
+            self.current_tab = screen_name
 
     def _on_keyboard(self, _window, key, *_args):
-        """Tecla "atrás" de Android / Esc: cierra el formulario o el detalle."""
         if key != 27:
             return False
         current = self.root.ids.sm.current
+        if current == "login":
+            return False
         if current == "nueva":
             self.cancel_form()
             return True
@@ -756,7 +810,6 @@ class ShoppingListApp(MDApp):
 
     # ── Formulario: crear y editar ──────────────────────────────────────
     def open_form_new(self):
-        """Abre el formulario vacío (botones "Nueva lista" y "Agregar")."""
         self.form_mode = "new"
         self.form_name = ""
         self.form_store = ""
@@ -764,7 +817,6 @@ class ShoppingListApp(MDApp):
         self._open_form()
 
     def open_form_edit(self):
-        """Abre el formulario con los datos de la lista que se está viendo."""
         lst = self.current_list()
         if lst is None:
             return
@@ -787,7 +839,6 @@ class ShoppingListApp(MDApp):
         self.go(self._form_origin or "listas")
 
     def submit_form(self):
-        """Crea la lista nueva o guarda los cambios de la que se edita."""
         name = self.form_name.strip()
         if not name:
             self.root.ids.sm.get_screen("nueva").ids.name_field.error = True
@@ -801,7 +852,6 @@ class ShoppingListApp(MDApp):
                 return
             lst["name"] = name
             lst["store"] = store
-            # El tipo de lista no se cambia al editar (se elige solo al crear).
             self._touch(lst)
             self.save_now()
             self.refresh_lists()
@@ -826,7 +876,6 @@ class ShoppingListApp(MDApp):
         self.open_list(lst["id"])
 
     def request_delete(self):
-        """Elimina la lista actual; pide tocar dos veces para confirmar."""
         if not self.delete_armed:
             self.delete_armed = True
             self._disarm_event = Clock.schedule_once(self._disarm_delete, 3)
@@ -864,7 +913,6 @@ class ShoppingListApp(MDApp):
         return f"{lst['store']} · {when}" if lst["store"] else when
 
     def refresh_lists(self):
-        """Reconstruye las tarjetas de "Mis listas" (la más nueva arriba)."""
         box = self.root.ids.sm.get_screen("listas").ids.lists_box
         box.clear_widgets()
         self.lists_count = len(self.lists)
@@ -895,8 +943,6 @@ class ShoppingListApp(MDApp):
         self.detail_meta = f"{lst['store']} · {created}" if lst["store"] else created
 
     def _load_detail(self, lst, check=True):
-        # current_id va primero: así, al cambiar el texto del bloc de notas,
-        # set_notes() ya compara contra la lista correcta.
         self.current_id = lst["id"]
         self.detail_name = lst["name"]
         self.detail_kind = lst["type"]
@@ -914,7 +960,7 @@ class ShoppingListApp(MDApp):
                 )
             )
         self._show_body(lst["type"])
-        scroll.scroll_y = 1  # siempre se empieza mirando arriba
+        scroll.scroll_y = 1
         self.refresh_progress()
         if check:
             self._schedule_ui_check()
@@ -933,20 +979,15 @@ class ShoppingListApp(MDApp):
         self.new_item_name = ""
         self.new_item_price = ""
         self.items_changed()
-        # Baja hasta el artículo recién agregado, pero solo si la lista ya
-        # no cabe en pantalla (si cabe, debe quedarse pegada arriba).
         Clock.schedule_once(self._scroll_items_to_end, 0.05)
 
     def _items_widgets(self):
         return self.items_scroll, self.items_scroll.ids.item_list
 
     def _show_body(self, kind):
-        """Deja en el cuerpo del detalle solo lo que corresponde al tipo de lista."""
         body = self.root.ids.sm.get_screen("detalle").ids.body
         wanted = self.items_scroll if kind == "checklist" else self.notes_card
         unwanted = self.notes_card if kind == "checklist" else self.items_scroll
-        # Se comprueba con body.children: widget.parent devuelve un proxy débil
-        # y compararlo con "is" no funciona.
         if unwanted in body.children:
             body.remove_widget(unwanted)
         if wanted not in body.children:
@@ -954,13 +995,11 @@ class ShoppingListApp(MDApp):
 
     def _scroll_items_to_end(self, *_):
         scroll, box = self._items_widgets()
-        content = box.minimum_height
-        if content > scroll.height:
-            scroll.scroll_y = 0  # baja hasta el último artículo
+        if box.minimum_height > scroll.height:
+            scroll.scroll_y = 0
 
     # ── Autorreparación de la interfaz ──────────────────────────────────
     def _schedule_ui_check(self, *_):
-        """Programa una revisión poco después de que termine la transición."""
         if self.root is None or "sm" not in self.root.ids:
             return
         Clock.unschedule(self.ui_check)
@@ -968,11 +1007,6 @@ class ShoppingListApp(MDApp):
 
     @staticmethod
     def _hit_path(widget, x, y):
-        """Cadena de widgets que recibiría un toque en (x, y) de la ventana.
-
-        Replica Widget.on_touch_down: un widget deshabilitado que contiene el
-        punto se queda con el toque aunque sea invisible.
-        """
         lx, ly = widget.to_widget(x, y)
         if not widget.collide_point(lx, ly):
             return None
@@ -992,23 +1026,11 @@ class ShoppingListApp(MDApp):
                 f"opacity={getattr(widget, 'opacity', 1)}, disabled={widget.disabled})")
 
     def ui_check(self, *_):
-        """Detecta y repara una pantalla del detalle "rota".
-
-        Síntoma que se buscaba: la lista del detalle no se ve y los botones
-        de arriba (editar, volver) no responden hasta reiniciar la app. Se
-        revisa que no haya una transición activa ni pantallas de más, que un
-        toque sobre el botón "volver" lo reciba ese botón y que, si la lista
-        tiene artículos, se vea alguno. Si algo falla, se reconstruye el
-        detalle y se deja en la consola una línea "UI auto-reparada: ..." con
-        el detalle de qué se encontró (por ejemplo, qué widget tapaba el botón).
-        """
         if self.root is None or "sm" not in self.root.ids:
             return
         sm = self.root.ids.sm
         found = []
         if sm.transition.is_active:
-            # Normal si se acaba de cambiar de pantalla: se espera a que
-            # termine. Solo si sigue activa tras varios intentos se corta.
             self._ui_waits = getattr(self, "_ui_waits", 0) + 1
             if self._ui_waits < 4:
                 Clock.schedule_once(self.ui_check, 0.4)
@@ -1033,7 +1055,6 @@ class ShoppingListApp(MDApp):
         lst = self.current_list()
         if sm.current == "detalle" and lst is not None:
             detail = sm.get_screen("detalle")
-            # 1) ¿Un toque sobre los botones de arriba llega a esos botones?
             for button in (w for w in detail.walk() if isinstance(w, IconButton)):
                 x, y = button.to_window(*button.center)
                 path = self._hit_path(self.root, x, y)
@@ -1042,7 +1063,6 @@ class ShoppingListApp(MDApp):
                         f"un toque sobre el botón '{button.icon}' lo recibe "
                         f"{self._describe(path[-1])}"
                     )
-            # 2) ¿Se ve algún artículo dentro del área de la lista?
             if lst["type"] == "checklist" and lst["items"]:
                 scroll, box = self._items_widgets()
                 sx, sy = scroll.to_window(*scroll.pos)
@@ -1062,8 +1082,6 @@ class ShoppingListApp(MDApp):
                         f"densidad={Metrics.density}"
                     )
             if found:
-                # Reconstruye el detalle desde los datos guardados y fuerza el
-                # layout; una sola vez (sin reprogramar otra revisión).
                 self._load_detail(lst, check=False)
                 scroll, box = self._items_widgets()
                 scroll.size_hint_y = 1
@@ -1075,7 +1093,6 @@ class ShoppingListApp(MDApp):
             Logger.warning("Listas: UI auto-reparada: " + "; ".join(found))
 
     def _after_repair(self, *_):
-        """Comprueba, una sola vez, si la reparación dejó la lista visible."""
         lst = self.current_list()
         if lst is None or lst["type"] != "checklist" or not lst["items"]:
             return
@@ -1100,7 +1117,6 @@ class ShoppingListApp(MDApp):
         self.items_changed()
 
     def items_changed(self):
-        """Se llama al marcar, agregar o quitar un artículo."""
         lst = self.current_list()
         if lst is not None:
             self._touch(lst)
@@ -1109,7 +1125,6 @@ class ShoppingListApp(MDApp):
         self.refresh_lists()
 
     def set_notes(self, text):
-        """Guarda el texto del bloc de notas (con un pequeño retraso)."""
         lst = self.current_list()
         if lst is None or lst["type"] != "notepad" or lst["notes"] == text:
             return
@@ -1125,26 +1140,19 @@ class ShoppingListApp(MDApp):
         done = sum(1 for it in items if it["done"])
         self.total_items = total
         self.done_items = done
-        self.total_text = format_price(sum(int(clean_price(it["price"]) or 0) for it in items)) or "$0"
+        self.total_text = format_price(
+            sum(int(clean_price(it["price"]) or 0) for it in items)
+        ) or "$0"
         self.progress = done / total if total else 0
         self.percent = int(round(self.progress * 100))
 
     # ── Tema oscuro / claro ──────────────────────────────────────────────
     def set_dark_mode(self, active):
-        """Alterna entre modo oscuro y claro con una transición suave."""
         if active == self.theme_dark:
             return
         self.theme_dark = active
         self.theme_cls.theme_style = "Dark" if active else "Light"
         palette = PALETTE_DARK if active else PALETTE_LIGHT
-        # "TEXT" va primero a propósito: varios widgets (el texto de los
-        # botones, el check del menú de idioma, etc.) fijan su color con
-        # app.accent_color/app.accent_fg_color en vez del app.text_color
-        # por defecto. Kivy mantiene ambos enlaces activos, así que si
-        # "TEXT" se animara después, su valor ganaría en cada fotograma y
-        # esos textos se verían blancos/negros en vez de su color propio.
-        # Animando "TEXT" primero, el color específico de cada widget es
-        # siempre el último en aplicarse.
         order = ["TEXT"] + [name for name in palette if name != "TEXT"]
         targets = {
             f"{name.lower()}_color": get_color_from_hex(palette[name])
@@ -1154,27 +1162,17 @@ class ShoppingListApp(MDApp):
         Animation(duration=0.35, t="out_quad", **targets).start(self)
 
     def on_bg_color(self, _instance, value):
-        # Mantiene el fondo de la ventana sincronizado con la interfaz.
         Window.clearcolor = value
 
     # ── Idioma ───────────────────────────────────────────────────────────
     def tr(self, lang, key):
-        """Traduce `key` al idioma indicado.
-
-        Se llama desde el KV como app.tr(app.lang, "clave"): pasar
-        app.lang explícitamente permite que los bindings de KV detecten
-        la dependencia y actualicen el texto automáticamente al elegir
-        un idioma distinto en el menú.
-        """
         return TRANSLATIONS.get(lang, TRANSLATIONS["es"]).get(key, key)
 
     def set_language(self, code):
-        """Cambia el idioma activo (llamado al elegir una opción del menú)."""
         if code in TRANSLATIONS:
             self.lang = code
 
     def on_lang(self, *_):
-        # Los textos generados desde Python (tarjetas, fechas) se rehacen.
         if self.root is None:
             return
         self.refresh_lists()
@@ -1183,7 +1181,6 @@ class ShoppingListApp(MDApp):
             self._refresh_detail_meta(lst)
 
     def open_language_menu(self, anchor):
-        """Abre el menú desplegable de idiomas anclado a `anchor`."""
         LanguageDropDown().open(anchor)
 
 

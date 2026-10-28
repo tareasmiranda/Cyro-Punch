@@ -25,14 +25,10 @@
     font_size: sp(24)
     icon_color: app.text_color
 
-# Ícono sin color por defecto: cada uso fija el suyo. Se usa en los widgets
-# nuevos (formulario, tarjetas de listas) para no tener dos enlaces de color
-# compitiendo al alternar el tema (ver comentario de PillIcon).
 <Glyph@MDIcon>:
     theme_font_size: "Custom"
     font_size: sp(24)
 
-# Etiqueta simple sin color por defecto (el color lo fija cada uso).
 <PlainLabel@Label>:
     font_name: app.font_name
     font_size: sp(15)
@@ -40,13 +36,6 @@
     text_size: None, None
     size: self.texture_size
 
-# Ícono y texto del PillButton: usan su propia clase (en vez de Icon/TxtAuto)
-# porque su color siempre es app.accent_fg_color, un tono idéntico en modo
-# oscuro y claro. Si compartieran la regla genérica de Icon/TxtAuto
-# (color: app.text_color), Kivy mantendría ambos enlaces activos y, como
-# accent_fg_color nunca cambia de valor entre temas, su enlace no se
-# refresca durante la animación: el texto terminaría con el color de
-# app.text_color en vez de mantenerse siempre oscuro sobre el botón lima.
 <PillIcon@MDIcon>:
     theme_font_size: "Custom"
     font_size: sp(20)
@@ -61,7 +50,6 @@
     size: self.texture_size
     color: app.accent_fg_color
 
-# Campo de texto con el estilo de la app (sin fondo propio: lo da el Card).
 <FieldInput@TextInput>:
     font_name: app.font_name
     font_size: sp(16.5)
@@ -118,7 +106,6 @@
             text: root.text
             pos_hint: {"center_y": .5}
 
-# Botón verde lima de ancho completo (formulario).
 <FormButton>:
     anchor_x: "center"
     anchor_y: "center"
@@ -143,7 +130,6 @@
             text: root.text
             pos_hint: {"center_y": .5}
 
-# Botón cuadrado verde lima (agregar artículo).
 <AddButton>:
     anchor_x: "center"
     anchor_y: "center"
@@ -160,7 +146,6 @@
         icon: root.icon
         font_size: sp(26)
 
-# Botón de solo texto (Cancelar, Eliminar lista).
 <LinkButton>:
     anchor_x: "center"
     anchor_y: "center"
@@ -229,7 +214,6 @@
     size_hint: None, None
     size: dp(26), dp(26)
     canvas:
-        # Casilla vacía: anillo gris (borde) + centro del color de la fila
         Color:
             rgba: app.accent_color if self.active else app.check_border_color
         RoundedRectangle:
@@ -242,7 +226,6 @@
             pos: self.x + dp(2.2), self.y + dp(2.2)
             size: self.width - dp(4.4), self.height - dp(4.4)
             radius: [dp(5.8)]
-        # Palomita (solo cuando está marcada)
         Color:
             rgba: app.accent_fg_color if self.active else (0, 0, 0, 0)
         Line:
@@ -468,9 +451,6 @@
         font_size: sp(14.5)
         color: app.muted_color
 
-# Lista de artículos del Checklist. GridLayout apila de arriba hacia abajo y
-# mide al menos el alto visible, así los artículos quedan arriba por
-# construcción y no hace falta mover scroll_y a mano.
 <ItemsScroll@ScrollView>:
     bar_width: 0
     do_scroll_x: False
@@ -481,8 +461,6 @@
         height: max(self.minimum_height, root.height)
         spacing: dp(8)
 
-# Bloc de notas. Sin padding en la tarjeta: el margen interno lo pone el campo,
-# así cualquier toque dentro de la tarjeta enfoca el texto.
 <NotesCard@Card>:
     padding: 0
     fill_color: app.surface_color
@@ -636,6 +614,113 @@
 
 # ══════════ Pantallas ═════════════════════════════════════════════════════
 
+<LoginScreen@MDScreen>:
+    name: "login"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(48), dp(24), dp(32)
+        spacing: dp(14)
+
+        Widget:
+            size_hint_y: 0.15
+
+        AnchorLayout:
+            size_hint_y: None
+            height: dp(84)
+            Glyph:
+                icon: "basket-outline"
+                icon_color: app.accent_color
+                font_size: sp(64)
+                pos_hint: {"center_x": .5, "center_y": .5}
+
+        Txt:
+            text: app.tr(app.lang, "login_title")
+            font_size: sp(28)
+            bold: True
+            halign: "center"
+
+        Txt:
+            text: (app.tr(app.lang, "login_subtitle_login")
+                   if app.has_users
+                   else app.tr(app.lang, "login_subtitle_register"))
+            font_size: sp(14)
+            color: app.muted_color
+            halign: "center"
+            line_height: 1.25
+
+        Widget:
+            size_hint_y: 0.06
+
+        Card:
+            size_hint_y: None
+            height: dp(56)
+            fill_color: app.surface_color
+            border_color: app.border_color
+            padding: dp(14), 0
+            BoxLayout:
+                spacing: dp(12)
+                Glyph:
+                    icon: "account-outline"
+                    icon_color: app.muted_color
+                    font_size: sp(22)
+                    size_hint: None, 1
+                    width: dp(24)
+                FieldInput:
+                    text: app.auth_username
+                    on_text: app.auth_username = self.text
+                    on_text_validate: app.submit_auth()
+                    hint_text: app.tr(app.lang, "username_hint")
+                    multiline: False
+                    padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
+
+        Card:
+            size_hint_y: None
+            height: dp(56)
+            fill_color: app.surface_color
+            border_color: app.border_color
+            padding: dp(14), 0
+            BoxLayout:
+                spacing: dp(12)
+                Glyph:
+                    icon: "lock-outline"
+                    icon_color: app.muted_color
+                    font_size: sp(22)
+                    size_hint: None, 1
+                    width: dp(24)
+                FieldInput:
+                    text: app.auth_password
+                    on_text: app.auth_password = self.text
+                    on_text_validate: app.submit_auth()
+                    password: True
+                    hint_text: app.tr(app.lang, "password_hint")
+                    multiline: False
+                    padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
+
+        BaseTxt:
+            text: app.auth_error
+            font_size: sp(13)
+            color: 1, 0.42, 0.42, 1
+            halign: "center"
+            valign: "middle"
+            text_size: self.width, None
+            size_hint_y: None
+            height: dp(20) if app.auth_error else 0
+            opacity: 1 if app.auth_error else 0
+
+        Widget:
+            size_hint_y: 0.05
+
+        FormButton:
+            text: (app.tr(app.lang, "login")
+                   if app.has_users
+                   else app.tr(app.lang, "create_account"))
+            icon: "arrow-right"
+            on_release: app.submit_auth()
+            size_hint_y: None
+            height: dp(56)
+
+        Widget:
+
 <InicioScreen@MDScreen>:
     name: "inicio"
     BoxLayout:
@@ -699,8 +784,6 @@
                 height: self.minimum_height
                 spacing: dp(14)
 
-# Formulario "Nueva lista" / "Editar lista" (se abre desde Inicio, Listas
-# y desde el detalle de una lista).
 <NuevaScreen@MDScreen>:
     name: "nueva"
     BoxLayout:
@@ -773,8 +856,6 @@
                         text: app.form_store
                         on_text: app.form_store = self.text
                         on_submit: app.submit_form()
-                    # Tipo de lista: solo se elige al crear. Al editar, el
-                    # bloque completo se oculta (alto 0, sin toques).
                     BoxLayout:
                         orientation: "vertical"
                         size_hint_y: None
@@ -887,7 +968,6 @@
                 icon: "pencil-outline"
                 pos_hint: {"center_y": .5}
                 on_release: app.open_form_edit()
-        # Progreso (solo en listas tipo Checklist)
         BoxLayout:
             orientation: "vertical"
             size_hint_y: None
@@ -909,15 +989,10 @@
                     color: app.accent_color
             SoftProgress:
                 value: app.progress
-        # Cuerpo: aquí main.py coloca SOLO el que corresponde a la lista abierta:
-        # la lista de artículos (Checklist) o el bloc de notas (Notepad). Ocupa
-        # todo el alto que sobra, así la pantalla se adapta a cualquier tamaño.
         BoxLayout:
             id: body
             orientation: "vertical"
             padding: 0, dp(18), 0, 0
-        # Total de la compra (solo Checklist): suma de los precios de todos
-        # los artículos de la lista.
         BoxLayout:
             size_hint_y: None
             height: dp(52) if app.detail_kind == "checklist" else 0
@@ -935,8 +1010,6 @@
                 bold: True
                 color: app.accent_color
                 pos_hint: {"center_y": .5}
-        # Agregar artículo (Checklist): nombre y precio comparten el ancho
-        # disponible en proporción, el botón mantiene su tamaño.
         BoxLayout:
             size_hint_y: None
             height: dp(68) if app.detail_kind == "checklist" else 0
@@ -995,6 +1068,7 @@
             SettingRow:
                 icon: "bell-outline"
                 text: app.tr(app.lang, "notifications")
+                on_release: app.test_notification()
                 Icon:
                     icon: "chevron-right"
                     icon_color: app.muted_color
@@ -1014,6 +1088,13 @@
                     icon_color: app.muted_color
                     font_size: sp(20)
                     pos_hint: {"center_y": .5}
+            LinkButton:
+                text: app.tr(app.lang, "logout")
+                tint: 1, 0.42, 0.42, 1
+                on_release: app.do_logout()
+                size_hint_y: None
+                height: dp(48)
+                pos_hint: {"center_x": .5}
         Widget:
 
 # ══════════ Raíz ══════════════════════════════════════════════════════════
@@ -1028,9 +1109,12 @@ MDBoxLayout:
             size: self.size
     MDScreenManager:
         id: sm
+        LoginScreen:
         InicioScreen:
         ListasScreen:
         NuevaScreen:
         DetalleScreen:
         AjustesScreen:
     BottomNav:
+        opacity: 1 if app.current_user else 0
+        disabled: not app.current_user

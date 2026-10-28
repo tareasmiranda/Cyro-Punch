@@ -20,6 +20,22 @@
       "updated": "2026-10-28",
       "items": [],
       "notes": ""
+    },
+    {
+      "id": "bc67494de4e945cbbe0f8a8185b3e8bf",
+      "name": "asdaasdad",
+      "store": "adasdad",
+      "type": "checklist",
+      "created": "2026-10-28",
+      "updated": "2026-10-28",
+      "items": [
+        {
+          "title": "ass",
+          "price": "123123",
+          "done": true
+        }
+      ],
+      "notes": ""
     }
   ]
 }
