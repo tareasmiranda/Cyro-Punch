@@ -38,6 +38,9 @@ import os
 import uuid
 from datetime import date
 
+from plyer import notification
+
+
 from kivy.config import Config
 from kivy.utils import platform
 
@@ -73,6 +76,9 @@ from kivy.uix.widget import Widget
 from kivy.utils import escape_markup, get_color_from_hex
 
 from kivymd.app import MDApp
+
+# LA NOTIIIIIII
+from noti import notify_pending_lists
 
 # Cuando aparece el teclado en el móvil, la interfaz se encoge para caber
 # sobre él. Así el bloc de notas (que ocupa todo el alto) se ajusta al espacio
@@ -642,6 +648,7 @@ class ShoppingListApp(MDApp):
         sm = self.root.ids.sm
         sm.transition = SlideTransition(duration=0.2)
         self.refresh_lists()
+        notify_pending_lists(self.lists, self.lang)   # <-- new call
 
     def on_pause(self):
         self.save_now()
