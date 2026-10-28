@@ -7,37 +7,37 @@
       "store": "Santaisabel",
       "type": "checklist",
       "created": "2026-10-27",
-      "updated": "2026-10-27",
+      "updated": "2026-10-28",
       "items": [
         {
           "title": "palta",
           "price": "2000",
-          "done": false
+          "done": true
         },
         {
           "title": "tomate",
           "price": "1500",
-          "done": false
+          "done": true
         },
         {
           "title": "vienesas",
           "price": "2990",
-          "done": false
+          "done": true
         },
         {
           "title": "pan",
           "price": "2000",
-          "done": false
+          "done": true
         },
         {
           "title": "mayo",
           "price": "2500",
-          "done": false
+          "done": true
         },
         {
           "title": "pescao",
           "price": "5000",
-          "done": false
+          "done": true
         }
       ],
       "notes": "Pollo 1kg\n1 Bebida\nCondoms"

@@ -105,7 +105,7 @@ PALETTE_LIGHT = {
     "SURFACE_ALT": "#ECEEF2",
     "NAV_BG": "#FFFFFF",
     "BORDER": "#E1E3E8",
-    "ACCENT": "#BEF24B",
+    "ACCENT": "#4AE236",
     "ACCENT_FG": "#0A0B0F",
     "TEXT": "#14161B",
     "MUTED": "#5B5F6B",
