@@ -640,7 +640,7 @@
             halign: "center"
 
         Txt:
-            text: app.tr(app.lang, "login_subtitle_login") if app.has_users else app.tr(app.lang, "login_subtitle_register")
+            text: app.tr(app.lang, "login_subtitle_login") if app.auth_mode == "login" else app.tr(app.lang, "login_subtitle_register")
             font_size: sp(14)
             color: app.muted_color
             halign: "center"
@@ -709,11 +709,18 @@
             size_hint_y: 0.05
 
         FormButton:
-            text: app.tr(app.lang, "login") if app.has_users else app.tr(app.lang, "create_account")
+            text: app.tr(app.lang, "login") if app.auth_mode == "login" else app.tr(app.lang, "create_account")
             icon: "arrow-right"
             on_release: app.submit_auth()
             size_hint_y: None
             height: dp(56)
+
+        LinkButton:
+            text: app.tr(app.lang, "switch_to_register") if app.auth_mode == "login" else app.tr(app.lang, "switch_to_login")
+            tint: app.muted_color
+            on_release: app.toggle_auth_mode()
+            opacity: 1 if app.has_users else 0
+            disabled: not app.has_users
 
         Widget:
 
