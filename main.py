@@ -51,10 +51,11 @@ from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
+from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.lang.builder import global_idmap
 from kivy.logger import Logger
-from kivy.metrics import dp, sp
+from kivy.metrics import Metrics, dp, sp
 from kivy.properties import (
     BooleanProperty,
     ColorProperty,
@@ -104,7 +105,7 @@ PALETTE_LIGHT = {
     "SURFACE_ALT": "#ECEEF2",
     "NAV_BG": "#FFFFFF",
     "BORDER": "#E1E3E8",
-    "ACCENT": "#5AE936",
+    "ACCENT": "#BEF24B",
     "ACCENT_FG": "#0A0B0F",
     "TEXT": "#14161B",
     "MUTED": "#5B5F6B",
@@ -149,9 +150,9 @@ TRANSLATIONS = {
         "edit_list_title": "Editar lista",
         "edit_list_sub": "Cambia los datos de tu lista.",
         "list_name": "Nombre de la lista",
-        "list_name_hint": ". . .",
-        "store": "Supermercado",
-        "store_hint": ". . .",
+        "list_name_hint": "Ej: Compra semanal",
+        "store": "Comercio",
+        "store_hint": "Ej: Líder",
         "list_type": "Tipo de lista",
         "checklist": "Checklist",
         "checklist_desc": "Marca lo que ya compraste.",
@@ -200,9 +201,9 @@ TRANSLATIONS = {
         "edit_list_title": "Edit list",
         "edit_list_sub": "Change your list details.",
         "list_name": "List name",
-        "list_name_hint": ". . .",
-        "store": "Supermarket",
-        "store_hint": ". . .",
+        "list_name_hint": "E.g. Weekly shop",
+        "store": "Store",
+        "store_hint": "E.g. Lider",
         "list_type": "List type",
         "checklist": "Checklist",
         "checklist_desc": "Tick off what you bought.",
@@ -622,13 +623,20 @@ class ShoppingListApp(MDApp):
         self.font_name = register_fonts()
         Window.clearcolor = self.bg_color
         Window.bind(on_keyboard=self._on_keyboard)
+        Window.bind(on_resize=lambda *_: self._schedule_ui_check())
 
         self.data_file = self._data_path()
         self.lists = self.load_lists()
         self.current_id = None
         self._form_origin = "listas"
         self._disarm_event = None
-        return Builder.load_file(KV_PATH)
+        root = Builder.load_file(KV_PATH)
+        # Cuerpo del detalle: se crean ambos, pero en pantalla hay siempre uno
+        # solo (ver _show_body). Así no se depende de ocultar widgets con
+        # tamaño 0, opacidad o "disabled".
+        self.items_scroll = Factory.ItemsScroll()
+        self.notes_card = Factory.NotesCard()
+        return root
 
     def on_start(self):
         sm = self.root.ids.sm
@@ -638,6 +646,11 @@ class ShoppingListApp(MDApp):
     def on_pause(self):
         self.save_now()
         return True  # permite que la app siga viva en segundo plano (Android)
+
+    def on_resume(self):
+        # Al volver de segundo plano se revisa que la interfaz esté sana.
+        self.refresh_lists()
+        self.ui_check()
 
     def on_stop(self):
         self.save_now()
@@ -717,6 +730,7 @@ class ShoppingListApp(MDApp):
             direction = "left" if forward else "right"
         sm.transition.direction = direction
         sm.current = screen_name
+        self._schedule_ui_check()
         # El detalle y el formulario pertenecen a la pestaña "Listas".
         self.current_tab = "listas" if screen_name in ("detalle", "nueva") else screen_name
 
@@ -873,7 +887,7 @@ class ShoppingListApp(MDApp):
         created = format_date(lst["created"], self.lang)
         self.detail_meta = f"{lst['store']} · {created}" if lst["store"] else created
 
-    def _load_detail(self, lst):
+    def _load_detail(self, lst, check=True):
         # current_id va primero: así, al cambiar el texto del bloc de notas,
         # set_notes() ya compara contra la lista correcta.
         self.current_id = lst["id"]
@@ -884,8 +898,7 @@ class ShoppingListApp(MDApp):
         self.new_item_price = ""
         self._refresh_detail_meta(lst)
 
-        detail = self.root.ids.sm.get_screen("detalle")
-        box = detail.ids.item_list
+        scroll, box = self._items_widgets()
         box.clear_widgets()
         for it in lst["items"]:
             box.add_widget(
@@ -893,8 +906,11 @@ class ShoppingListApp(MDApp):
                     title=it["title"], price=it["price"], done=it["done"], item=it
                 )
             )
-        detail.ids.items_scroll.scroll_y = 1  # siempre se empieza mirando arriba
+        self._show_body(lst["type"])
+        scroll.scroll_y = 1  # siempre se empieza mirando arriba
         self.refresh_progress()
+        if check:
+            self._schedule_ui_check()
 
     def add_item(self):
         lst = self.current_list()
@@ -904,8 +920,7 @@ class ShoppingListApp(MDApp):
         item = {"title": name, "price": clean_price(self.new_item_price), "done": False}
         lst["items"].append(item)
 
-        detail = self.root.ids.sm.get_screen("detalle")
-        detail.ids.item_list.add_widget(
+        self._items_widgets()[1].add_widget(
             ShoppingItem(title=item["title"], price=item["price"], item=item)
         )
         self.new_item_name = ""
@@ -916,25 +931,155 @@ class ShoppingListApp(MDApp):
         Clock.schedule_once(self._scroll_items_to_end, 0.05)
 
     def _items_widgets(self):
-        detail = self.root.ids.sm.get_screen("detalle")
-        return detail.ids.items_scroll, detail.ids.item_list
+        return self.items_scroll, self.items_scroll.ids.item_list
+
+    def _show_body(self, kind):
+        """Deja en el cuerpo del detalle solo lo que corresponde al tipo de lista."""
+        body = self.root.ids.sm.get_screen("detalle").ids.body
+        wanted = self.items_scroll if kind == "checklist" else self.notes_card
+        unwanted = self.notes_card if kind == "checklist" else self.items_scroll
+        # Se comprueba con body.children: widget.parent devuelve un proxy débil
+        # y compararlo con "is" no funciona.
+        if unwanted in body.children:
+            body.remove_widget(unwanted)
+        if wanted not in body.children:
+            body.add_widget(wanted)
 
     def _scroll_items_to_end(self, *_):
         scroll, box = self._items_widgets()
-        scroll.scroll_y = 0 if box.height > scroll.height else 1
+        content = box.minimum_height
+        if content > scroll.height:
+            scroll.scroll_y = 0  # baja hasta el último artículo
 
-    def settle_scroll(self):
-        """Si los artículos caben sin scroll, los deja pegados arriba.
+    # ── Autorreparación de la interfaz ──────────────────────────────────
+    def _schedule_ui_check(self, *_):
+        """Programa una revisión poco después de que termine la transición."""
+        if self.root is None or "sm" not in self.root.ids:
+            return
+        Clock.unschedule(self.ui_check)
+        Clock.schedule_once(self.ui_check, self.root.ids.sm.transition.duration + 0.35)
 
-        Un ScrollView con scroll_y = 0 alinea el contenido corto abajo, y así
-        la lista se veía apilada hacia arriba. Se llama cada vez que cambia el
-        alto de la lista o del área visible (agregar, quitar, rotar, teclado).
+    @staticmethod
+    def _hit_path(widget, x, y):
+        """Cadena de widgets que recibiría un toque en (x, y) de la ventana.
+
+        Replica Widget.on_touch_down: un widget deshabilitado que contiene el
+        punto se queda con el toque aunque sea invisible.
+        """
+        lx, ly = widget.to_widget(x, y)
+        if not widget.collide_point(lx, ly):
+            return None
+        if widget.disabled:
+            return [widget]
+        for child in widget.children[:]:
+            path = ShoppingListApp._hit_path(child, x, y)
+            if path:
+                return [widget] + path
+        return [widget]
+
+    @staticmethod
+    def _describe(widget):
+        x, y = widget.to_window(*widget.pos)
+        return (f"{widget.__class__.__name__}(pos=({x:.0f},{y:.0f}), "
+                f"size=({widget.width:.0f},{widget.height:.0f}), "
+                f"opacity={getattr(widget, 'opacity', 1)}, disabled={widget.disabled})")
+
+    def ui_check(self, *_):
+        """Detecta y repara una pantalla del detalle "rota".
+
+        Síntoma que se buscaba: la lista del detalle no se ve y los botones
+        de arriba (editar, volver) no responden hasta reiniciar la app. Se
+        revisa que no haya una transición activa ni pantallas de más, que un
+        toque sobre el botón "volver" lo reciba ese botón y que, si la lista
+        tiene artículos, se vea alguno. Si algo falla, se reconstruye el
+        detalle y se deja en la consola una línea "UI auto-reparada: ..." con
+        el detalle de qué se encontró (por ejemplo, qué widget tapaba el botón).
         """
         if self.root is None or "sm" not in self.root.ids:
             return
-        scroll, box = self._items_widgets()
-        if box.height <= scroll.height:
-            scroll.scroll_y = 1
+        sm = self.root.ids.sm
+        found = []
+        if sm.transition.is_active:
+            # Normal si se acaba de cambiar de pantalla: se espera a que
+            # termine. Solo si sigue activa tras varios intentos se corta.
+            self._ui_waits = getattr(self, "_ui_waits", 0) + 1
+            if self._ui_waits < 4:
+                Clock.schedule_once(self.ui_check, 0.4)
+                return
+            sm.transition.stop()
+            found.append("transición activa (colgada)")
+        self._ui_waits = 0
+        current = sm.current_screen
+        if current is not None:
+            for screen in list(sm.children):
+                if screen is not current:
+                    sm.real_remove_widget(screen)
+                    found.append(f"pantalla sobrante '{screen.name}'")
+            if current not in sm.children:
+                sm.real_add_widget(current)
+                found.append(f"pantalla '{current.name}' no estaba en pantalla")
+            if abs(current.x - sm.x) > 1 or abs(current.y - sm.y) > 1:
+                found.append(f"pantalla desplazada {tuple(round(v) for v in current.pos)}")
+            current.pos = sm.pos
+            current.opacity = 1
+
+        lst = self.current_list()
+        if sm.current == "detalle" and lst is not None:
+            detail = sm.get_screen("detalle")
+            # 1) ¿Un toque sobre los botones de arriba llega a esos botones?
+            for button in (w for w in detail.walk() if isinstance(w, IconButton)):
+                x, y = button.to_window(*button.center)
+                path = self._hit_path(self.root, x, y)
+                if path and button not in path:
+                    found.append(
+                        f"un toque sobre el botón '{button.icon}' lo recibe "
+                        f"{self._describe(path[-1])}"
+                    )
+            # 2) ¿Se ve algún artículo dentro del área de la lista?
+            if lst["type"] == "checklist" and lst["items"]:
+                scroll, box = self._items_widgets()
+                sx, sy = scroll.to_window(*scroll.pos)
+                visible = False
+                for row in box.children:
+                    rx, ry = row.to_window(*row.pos)
+                    if ry < sy + scroll.height and ry + row.height > sy:
+                        visible = True
+                        break
+                if not visible or scroll.height < dp(60):
+                    body = detail.ids.body
+                    found.append(
+                        "lista sin artículos visibles: "
+                        f"scroll={self._describe(scroll)} size_hint_y={scroll.size_hint_y}, "
+                        f"contenedor={self._describe(body)}, contenido={self._describe(box)}, "
+                        f"scroll_y={scroll.scroll_y:.2f}, ventana={tuple(Window.size)}, "
+                        f"densidad={Metrics.density}"
+                    )
+            if found:
+                # Reconstruye el detalle desde los datos guardados y fuerza el
+                # layout; una sola vez (sin reprogramar otra revisión).
+                self._load_detail(lst, check=False)
+                scroll, box = self._items_widgets()
+                scroll.size_hint_y = 1
+                detail.ids.body.do_layout()
+                box.do_layout()
+                scroll.scroll_y = 1
+                Clock.schedule_once(self._after_repair, 0.4)
+        if found:
+            Logger.warning("Listas: UI auto-reparada: " + "; ".join(found))
+
+    def _after_repair(self, *_):
+        """Comprueba, una sola vez, si la reparación dejó la lista visible."""
+        lst = self.current_list()
+        if lst is None or lst["type"] != "checklist" or not lst["items"]:
+            return
+        scroll, _box = self._items_widgets()
+        if scroll.height < dp(60):
+            Logger.warning(
+                "Listas: la reparación no bastó, la lista sigue sin alto: "
+                f"{self._describe(scroll)} size_hint_y={scroll.size_hint_y}"
+            )
+        else:
+            Logger.info("Listas: la lista volvió a verse tras la reparación")
 
     def delete_item(self, widget):
         lst = self.current_list()

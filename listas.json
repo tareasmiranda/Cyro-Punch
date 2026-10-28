@@ -35,11 +35,6 @@
           "done": false
         },
         {
-          "title": "arroz",
-          "price": "1000",
-          "done": false
-        },
-        {
           "title": "pescao",
           "price": "5000",
           "done": false
@@ -49,13 +44,13 @@
     },
     {
       "id": "e6c9b3f551dc4bbb93d0c600701dbe00",
-      "name": "HALLO",
+      "name": "vince offer",
       "store": "Acuenta",
       "type": "notepad",
       "created": "2026-10-27",
-      "updated": "2026-10-27",
+      "updated": "2026-10-28",
       "items": [],
-      "notes": "huevo\ncebolla\nensalada\npapas fritas\njdiawjdkaw\nfjijfoawjfa\nfojofjwoaj"
+      "notes": "huevo\ncebolla\nensalada\npapas fritas\n"
     }
   ]
 }

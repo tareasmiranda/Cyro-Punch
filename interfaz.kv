@@ -468,6 +468,33 @@
         font_size: sp(14.5)
         color: app.muted_color
 
+# Lista de artículos del Checklist. GridLayout apila de arriba hacia abajo y
+# mide al menos el alto visible, así los artículos quedan arriba por
+# construcción y no hace falta mover scroll_y a mano.
+<ItemsScroll@ScrollView>:
+    bar_width: 0
+    do_scroll_x: False
+    GridLayout:
+        id: item_list
+        cols: 1
+        size_hint_y: None
+        height: max(self.minimum_height, root.height)
+        spacing: dp(8)
+
+# Bloc de notas. Sin padding en la tarjeta: el margen interno lo pone el campo,
+# así cualquier toque dentro de la tarjeta enfoca el texto.
+<NotesCard@Card>:
+    padding: 0
+    fill_color: app.surface_color
+    border_color: app.border_color
+    radius: dp(20)
+    FieldInput:
+        text: app.detail_notes
+        on_text: app.set_notes(self.text)
+        hint_text: app.tr(app.lang, "notes_hint")
+        multiline: True
+        padding: dp(18), dp(18), dp(18), dp(18)
+
 <ShoppingItem>:
     size_hint_y: None
     height: dp(62)
@@ -882,47 +909,13 @@
                     color: app.accent_color
             SoftProgress:
                 value: app.progress
-        # Cuerpo: artículos (Checklist) o bloc de notas (Notepad). Ocupa todo
-        # el alto que sobra, así la pantalla se adapta a cualquier tamaño.
+        # Cuerpo: aquí main.py coloca SOLO el que corresponde a la lista abierta:
+        # la lista de artículos (Checklist) o el bloc de notas (Notepad). Ocupa
+        # todo el alto que sobra, así la pantalla se adapta a cualquier tamaño.
         BoxLayout:
+            id: body
             orientation: "vertical"
             padding: 0, dp(18), 0, 0
-            ScrollView:
-                id: items_scroll
-                bar_width: 0
-                do_scroll_x: False
-                size_hint_y: 1 if app.detail_kind == "checklist" else None
-                height: 0
-                opacity: 1 if app.detail_kind == "checklist" else 0
-                disabled: app.detail_kind != "checklist"
-                on_height: app.settle_scroll()
-                BoxLayout:
-                    id: item_list
-                    orientation: "vertical"
-                    size_hint_y: None
-                    height: self.minimum_height
-                    spacing: dp(8)
-                    # Si el contenido cabe, el scroll vuelve arriba: un
-                    # ScrollView con scroll_y = 0 pega el contenido abajo.
-                    on_height: app.settle_scroll()
-            # El cuadro de texto ocupa todo el alto disponible. Sin padding en
-            # la tarjeta: el margen interno lo pone el propio campo, así que
-            # cualquier toque dentro de la tarjeta enfoca el texto.
-            Card:
-                size_hint_y: 1 if app.detail_kind == "notepad" else None
-                height: 0
-                opacity: 1 if app.detail_kind == "notepad" else 0
-                disabled: app.detail_kind != "notepad"
-                padding: 0
-                fill_color: app.surface_color
-                border_color: app.border_color
-                radius: dp(20)
-                FieldInput:
-                    text: app.detail_notes
-                    on_text: app.set_notes(self.text)
-                    hint_text: app.tr(app.lang, "notes_hint")
-                    multiline: True
-                    padding: dp(18), dp(18), dp(18), dp(18)
         # Total de la compra (solo Checklist): suma de los precios de todos
         # los artículos de la lista.
         BoxLayout:
