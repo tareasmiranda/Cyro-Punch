@@ -3,23 +3,22 @@ Lista de compras · Kivy + KivyMD
 =================================
 
 Pantallas:
-  1. Login           (crear cuenta la primera vez / iniciar sesión)
-  2. Inicio          (saludo + botón "Nueva lista")
-  3. Listas          ("Mis listas" + una tarjeta por cada lista creada)
-  4. Nueva / Editar  (formulario: nombre, comercio y tipo de lista)
-  5. Detalle         (progreso + artículos con checkbox, o bloc de notas)
-  6. Ajustes         (tema oscuro, notificaciones, idioma, cerrar sesión)
+  1. Login / Registro  (crear cuenta o iniciar sesión)
+  2. Inicio            (saludo + botón "Nueva lista")
+  3. Listas            ("Mis listas" + una tarjeta por cada lista)
+  4. Nueva / Editar    (formulario: nombre, comercio y tipo de lista)
+  5. Detalle           (progreso + artículos, o bloc de notas)
+  6. Ajustes           (tema, notificaciones, idioma, cerrar sesión)
 
-Autenticación:
+Autenticación y cuentas:
   - Los usuarios se guardan en "usuarios.json" (PBKDF2-SHA256 + salt).
-  - La primera vez que se abre la app no hay usuarios y el formulario se
-    muestra como "Crear cuenta". A partir de ahí, "Iniciar sesión".
-  - La sesión se recuerda: al volver a abrir la app se entra directamente
-    a Inicio. "Cerrar sesión" (en Ajustes) vuelve a la pantalla de login.
-
-Notificaciones:
-  - Al entrar a la app con listas pendientes se muestra una notificación
-    local (ver noti.py). En Ajustes → Notificaciones se puede probar.
+  - La pantalla de login alterna entre dos modos:
+      · "login"    → iniciar sesión con una cuenta existente
+      · "register" → crear una cuenta nueva
+    Al pie hay un enlace para cambiar de un modo al otro.
+  - Cada cuenta tiene SU PROPIO archivo de listas:
+        listas_<usuario>.json
+    así las listas de un usuario no se mezclan con las de otro.
 
 Instalación:
     pip install kivy kivymd plyer
@@ -30,7 +29,9 @@ Instalación:
 import hashlib
 import json
 import os
+import re
 import secrets
+import shutil
 import uuid
 from datetime import date
 
@@ -72,13 +73,10 @@ from kivymd.app import MDApp
 
 from noti import notify_pending_lists, notify_test
 
-# Cuando aparece el teclado en el móvil, la interfaz se encoge para caber
-# sobre él. Así el bloc de notas (que ocupa todo el alto) se ajusta al
-# espacio que queda en vez de empujar toda la pantalla hacia arriba.
 Window.softinput_mode = "resize"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Paleta de colores: modo oscuro (por defecto) y modo claro
+#  Paletas de color
 # ─────────────────────────────────────────────────────────────────────────
 PALETTE_DARK = {
     "BG": "#0A0B0F",
@@ -112,7 +110,6 @@ PALETTE_LIGHT = {
 
 
 def mix(color_a, color_b, t):
-    """Interpola entre dos colores RGBA (t = 0 → a, t = 1 → b)."""
     return [a + (b - a) * t for a, b in zip(color_a, color_b)]
 
 
@@ -120,7 +117,7 @@ global_idmap.update({"dp": dp, "sp": sp, "mix": mix})
 
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Textos de la interfaz (Español / Inglés)
+#  Textos de la interfaz
 # ─────────────────────────────────────────────────────────────────────────
 TRANSLATIONS = {
     "es": {
@@ -170,7 +167,7 @@ TRANSLATIONS = {
         "nav_home": "Inicio",
         "nav_lists": "Listas",
         "nav_settings": "Ajustes",
-        # Login
+        # Login / Registro
         "login_title": "Bienvenido",
         "login_subtitle_login": "Inicia sesión para ver tus listas",
         "login_subtitle_register": "Crea tu cuenta para empezar",
@@ -178,6 +175,8 @@ TRANSLATIONS = {
         "password_hint": "Contraseña",
         "login": "Iniciar sesión",
         "create_account": "Crear cuenta",
+        "switch_to_register": "Crear cuenta nueva",
+        "switch_to_login": "Ya tengo cuenta · Iniciar sesión",
         "logout": "Cerrar sesión",
         "auth_empty": "Completa usuario y contraseña.",
         "auth_user_not_found": "Usuario no encontrado.",
@@ -231,7 +230,7 @@ TRANSLATIONS = {
         "nav_home": "Home",
         "nav_lists": "Lists",
         "nav_settings": "Settings",
-        # Login
+        # Login / Register
         "login_title": "Welcome",
         "login_subtitle_login": "Sign in to view your lists",
         "login_subtitle_register": "Create your account to get started",
@@ -239,6 +238,8 @@ TRANSLATIONS = {
         "password_hint": "Password",
         "login": "Sign in",
         "create_account": "Create account",
+        "switch_to_register": "Create a new account",
+        "switch_to_login": "I have an account · Sign in",
         "logout": "Sign out",
         "auth_empty": "Fill in username and password.",
         "auth_user_not_found": "User not found.",
@@ -287,20 +288,25 @@ def format_price(value):
 
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Persistencia (archivos JSON)
+#  Persistencia
 # ─────────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_FILENAME = "listas.json"
 USERS_FILENAME = "usuarios.json"
 LIST_TYPES = ("checklist", "notepad")
-
 KV_PATH = os.path.join(BASE_DIR, "interfaz.kv")
+
+LEGACY_LIST_FILE = "listas.json"  # compatibilidad con versiones anteriores
 
 
 def _hash_password(password, salt):
     return hashlib.pbkdf2_hmac(
         "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100_000
     ).hex()
+
+
+def _safe_username(username):
+    safe = re.sub(r"[^A-Za-z0-9_-]", "_", username or "").strip("_")
+    return safe or "anon"
 
 
 def normalize_list(raw):
@@ -332,9 +338,6 @@ def normalize_list(raw):
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────
-#  Tipografía
-# ─────────────────────────────────────────────────────────────────────────
 def register_fonts():
     regular = os.path.join(BASE_DIR, "fonts", "Inter-Regular.ttf")
     bold = os.path.join(BASE_DIR, "fonts", "Inter-Bold.ttf")
@@ -515,8 +518,7 @@ class LanguageDropDown(DropDown):
         if self.attach_to is None:
             return
         right_edge = self.attach_to.to_window(self.attach_to.right, 0)[0]
-        x = right_edge - self.width
-        self.x = max(x, 0)
+        self.x = max(right_edge - self.width, 0)
 
     def open(self, widget):
         super().open(widget)
@@ -559,10 +561,11 @@ class ShoppingListApp(MDApp):
     auth_username = StringProperty("")
     auth_password = StringProperty("")
     auth_error = StringProperty("")
+    auth_mode = StringProperty("login")   # "login" o "register"
     current_user = StringProperty("")
     has_users = BooleanProperty(False)
 
-    # Colores del tema activo
+    # Tema
     bg_color = ColorProperty(get_color_from_hex(PALETTE_DARK["BG"]))
     surface_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE"]))
     surface_alt_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE_ALT"]))
@@ -588,26 +591,30 @@ class ShoppingListApp(MDApp):
         Window.bind(on_keyboard=self._on_keyboard)
         Window.bind(on_resize=lambda *_: self._schedule_ui_check())
 
-        self.data_file = self._data_path()
         self.users_file = self._users_path()
-        self.lists = self.load_lists()
 
-        # Sesión recordada
         _users = self.load_users()
         _accounts = _users.get("users", {}) if isinstance(_users, dict) else {}
         self.has_users = bool(_accounts)
         saved = _users.get("current_user", "") if isinstance(_users, dict) else ""
-        self.current_user = saved if saved in _accounts else ""
 
+        self.data_file = None
+        self.lists = []
         self.current_id = None
         self._form_origin = "listas"
         self._disarm_event = None
 
+        if saved and saved in _accounts:
+            self.current_user = saved
+            self._load_user_data(migrate_legacy=True)
+            self.auth_mode = "login"
+        else:
+            self.current_user = ""
+            self.auth_mode = "login" if self.has_users else "register"
+
         root = Builder.load_file(KV_PATH)
         self.items_scroll = Factory.ItemsScroll()
         self.notes_card = Factory.NotesCard()
-
-        # Arranque: a Inicio si hay sesión, si no al Login
         root.ids.sm.current = "inicio" if self.current_user else "login"
         return root
 
@@ -631,11 +638,34 @@ class ShoppingListApp(MDApp):
         self.save_now()
 
     # ── Persistencia: listas ────────────────────────────────────────────
-    def _data_path(self):
-        folder = self.user_data_dir if platform in ("android", "ios") else BASE_DIR
-        return os.path.join(folder, DATA_FILENAME)
+    def _data_dir(self):
+        return self.user_data_dir if platform in ("android", "ios") else BASE_DIR
+
+    def _data_path_for(self, username):
+        """Archivo de listas propio de cada usuario."""
+        return os.path.join(self._data_dir(), f"listas_{_safe_username(username)}.json")
+
+    def _load_user_data(self, migrate_legacy=False):
+        """Asocia self.data_file/self.lists a la cuenta actual."""
+        self.data_file = self._data_path_for(self.current_user)
+
+        if migrate_legacy:
+            # Si existía el archivo antiguo (una sola lista global), se copia
+            # al usuario recordado la primera vez que arranca esta versión.
+            legacy = os.path.join(self._data_dir(), LEGACY_LIST_FILE)
+            if not os.path.exists(self.data_file) and os.path.exists(legacy):
+                try:
+                    shutil.copy2(legacy, self.data_file)
+                    Logger.info(f"Listas: migradas de {legacy} a {self.data_file}")
+                except OSError as exc:
+                    Logger.warning(f"Listas: no se pudo migrar: {exc}")
+
+        self.lists = self.load_lists()
+        self.current_id = None
 
     def load_lists(self):
+        if not self.data_file:
+            return []
         try:
             with open(self.data_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -654,6 +684,8 @@ class ShoppingListApp(MDApp):
 
     def save_now(self, *_):
         Clock.unschedule(self.save_now)
+        if not self.data_file:
+            return
         payload = {"version": 1, "lists": self.lists}
         tmp_path = self.data_file + ".tmp"
         try:
@@ -669,8 +701,7 @@ class ShoppingListApp(MDApp):
 
     # ── Persistencia: usuarios ──────────────────────────────────────────
     def _users_path(self):
-        folder = self.user_data_dir if platform in ("android", "ios") else BASE_DIR
-        return os.path.join(folder, USERS_FILENAME)
+        return os.path.join(self._data_dir(), USERS_FILENAME)
 
     def load_users(self):
         try:
@@ -693,6 +724,10 @@ class ShoppingListApp(MDApp):
             Logger.error(f"Usuarios: no se pudo guardar {self.users_file}: {exc}")
 
     # ── Login / Registro ────────────────────────────────────────────────
+    def toggle_auth_mode(self):
+        self.auth_mode = "login" if self.auth_mode == "register" else "register"
+        self.auth_error = ""
+
     def submit_auth(self):
         self.auth_error = ""
         username = self.auth_username.strip()
@@ -707,8 +742,10 @@ class ShoppingListApp(MDApp):
         if not isinstance(accounts, dict):
             accounts = {}
 
-        if not accounts:
-            # Primer uso → crear cuenta.
+        if self.auth_mode == "register":
+            if username in accounts:
+                self.auth_error = self.tr(self.lang, "auth_user_exists")
+                return
             salt = secrets.token_hex(16)
             accounts[username] = {
                 "salt": salt,
@@ -719,9 +756,11 @@ class ShoppingListApp(MDApp):
             self.save_users(data)
             self.has_users = True
             self.current_user = username
+            self._load_user_data()
             self._enter_app()
             return
 
+        # Login
         record = accounts.get(username)
         if record is None:
             self.auth_error = self.tr(self.lang, "auth_user_not_found")
@@ -733,6 +772,7 @@ class ShoppingListApp(MDApp):
         data["current_user"] = username
         self.save_users(data)
         self.current_user = username
+        self._load_user_data()
         self._enter_app()
 
     def _enter_app(self):
@@ -747,13 +787,16 @@ class ShoppingListApp(MDApp):
         data.pop("current_user", None)
         self.save_users(data)
         self.current_user = ""
+        self.data_file = None
+        self.lists = []
+        self.current_id = None
         self.auth_username = ""
         self.auth_password = ""
         self.auth_error = ""
+        self.auth_mode = "login"
         self.go("login")
 
     def test_notification(self):
-        """Dispara una notificación de prueba (botón de Ajustes)."""
         notify_test(self.lang)
 
     # ── Acceso a las listas ─────────────────────────────────────────────
@@ -808,7 +851,7 @@ class ShoppingListApp(MDApp):
             return True
         return False
 
-    # ── Formulario: crear y editar ──────────────────────────────────────
+    # ── Formulario crear / editar ───────────────────────────────────────
     def open_form_new(self):
         self.form_mode = "new"
         self.form_name = ""
@@ -1146,7 +1189,7 @@ class ShoppingListApp(MDApp):
         self.progress = done / total if total else 0
         self.percent = int(round(self.progress * 100))
 
-    # ── Tema oscuro / claro ──────────────────────────────────────────────
+    # ── Tema ────────────────────────────────────────────────────────────
     def set_dark_mode(self, active):
         if active == self.theme_dark:
             return
