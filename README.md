@@ -27,17 +27,11 @@ Aquí se define:
 
 En otras palabras, este archivo concentra la parte funcional y del comportamiento del programa.
 
-### `listas.json`
-Es el archivo de almacenamiento local.
+### `interfaz.kv`
+Es el archivo de interfaz gráfica de Kivy.
 
-Se usa para guardar:
-- las listas creadas por el usuario
-- los productos asociados a cada lista
-- el tipo de lista (checklist o notepad)
-- el estado de artículos marcados o pendientes
-- datos como nombre, comercio y notas
-
-Es la base de datos sencilla del proyecto mientras la app está siendo usada.
+Aquí se especifican:
+- lal proyecto mientras la app está siendo usada.
 
 
 ## Resumen
