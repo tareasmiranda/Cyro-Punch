@@ -5,11 +5,13 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Allows manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    # Pin to Ubuntu 22.04 to avoid the Python 3.14 incompatibility
+    # introduced by ubuntu-latest (now Ubuntu 26.04).
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -19,7 +21,7 @@ jobs:
         uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
         with:
-          workdir: .          # Directory containing buildozer.spec
+          workdir: .
           buildozer_version: stable
           command: buildozer android debug
 
