@@ -1,49 +1,48 @@
-name: Build APK with Buildozer
+name: Build
 
 on:
   push:
     branches: [ main, master ]
     tags:
-      - 'v*'          # e.g. v1.0, v1.0.1 — triggers a Release
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
-  contents: write     # required by softprops/action-gh-release to create a Release
+  contents: write
 
 jobs:
   build-android:
-    # Pin to Ubuntu 22.04 to avoid the Python 3.14 incompatibility
-    # introduced by ubuntu-latest (now Ubuntu 26.04).
+    name: Build for Android
+    # ubuntu-latest is now Ubuntu 26.04 (Python 3.14).
+    # Pin to 22.04 to match the toolchain the Docker image expects.
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Buildozer action
+      - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1.2.0
         id: buildozer
         with:
+          # Set this to the folder that contains buildozer.spec and main.py.
+          # If everything is at the repo root, use "." (or omit it).
+          # If your files are in a subfolder called test_app, keep "test_app".
           workdir: .
           buildozer_version: stable
-          command: buildozer android debug
 
-      # 1) Upload the APK as an artifact WITHOUT zipping it.
-      #    archive:false (upload-artifact >= 4.4.0) keeps the .apk raw.
-      - name: Upload APK artifact (unzipped)
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: ${{ steps.buildozer.outputs.filename }}
           archive: false
 
-      # 2) Attach the SAME .apk to a GitHub Release when a tag v* is pushed.
       - name: Attach APK to GitHub Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.buildozer.outputs.filename }}
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
