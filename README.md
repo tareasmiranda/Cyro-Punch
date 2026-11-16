@@ -28,6 +28,7 @@ Cyro-punch/
 └── .git/
 ```
 
+
 ## Descripción de los archivos principales
 
 ### `main.py`
