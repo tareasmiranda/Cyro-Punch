@@ -33,14 +33,19 @@ jobs:
           rm -rf ~/.buildozer/android/packages
           rm -rf main/.buildozer
 
-      - name: Build with pinned kivy/buildozer image (Ubuntu 22.04, Python 3.10)
+      - name: Build Python 3.10 Buildozer image (BallSpins)
+        run: |
+          git clone --depth 1 https://github.com/BallSpins/kivy-build.git
+          docker build -t buildozer:android ./kivy-build
+
+      - name: Build APK with Python 3.10 image
         id: buildozer
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}/main:/home/user/hostcwd" \
-            -v "${{ github.workspace }}/.buildozer_global:/home/user/.buildozer" \
-            -w /home/user/hostcwd \
-            kivy/buildozer:1.5.0 \
+            -v "${{ github.workspace }}/main:/app" \
+            -v "${{ github.workspace }}/.buildozer_global:/root/.buildozer" \
+            -w /app \
+            buildozer:android \
             android debug
 
       - name: Find APK
