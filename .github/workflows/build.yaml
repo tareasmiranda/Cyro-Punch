@@ -35,23 +35,21 @@ jobs:
           path: main/.buildozer
           key: buildozer-local-${{ hashFiles('main/buildozer.spec') }}
 
-      - name: Buildozer action (fix)
-        uses: gxosty/buildozer-action@1.0.8
+      - name: Buildozer-Kivy-Apk-Creator
+        uses: wildspider57389928/Buildozer-Kivy-APK_Creator@4.0.0
         id: buildozer
         with:
-          repository_root: main
-          workdir: .
-          buildozer_version: 1.6.0
+          project-dir: main
           command: buildozer android debug
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: main/bin/*.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{ steps.buildozer.outputs.filename }}
+          files: main/bin/*.apk
