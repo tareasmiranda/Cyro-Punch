@@ -15,18 +15,12 @@ permissions:
 jobs:
   build-android:
     name: Build for Android
-    # Pin to 22.04 – its Python 3.10 is compatible with Kivy 2.3.x.
-    # Do NOT use ubuntu-latest: it is now Ubuntu 26.04 (Python 3.14),
-    # which breaks the official Buildozer Docker image.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04   # Do NOT use ubuntu-latest (26.04 / Python 3.14)
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ------------------------------------------------------------------
-      # Install system dependencies required by Buildozer / python-for-android
-      # ------------------------------------------------------------------
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -37,46 +31,30 @@ jobs:
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             libtinfo5 cmake libffi-dev libssl-dev
 
-      # ------------------------------------------------------------------
-      # Install Buildozer and its Python dependencies
-      # ------------------------------------------------------------------
       - name: Install Buildozer
         run: |
           pip3 install --upgrade pip
           pip3 install buildozer cython==0.29.36
 
-      # ------------------------------------------------------------------
-      # Optional: cache the .buildozer directory to speed up future runs
-      # ------------------------------------------------------------------
-      - name: Cache Buildozer global directory
+      - name: Cache Buildozer directory
         uses: actions/cache@v3
         with:
           path: .buildozer
           key: buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # ------------------------------------------------------------------
-      # Build the debug APK
-      # ------------------------------------------------------------------
       - name: Build with Buildozer
         id: buildozer
         run: |
           buildozer android debug
-          # Expose the generated APK path for later steps
           echo "filename=$(find bin -name '*.apk' | head -n1)" >> $GITHUB_OUTPUT
 
-      # ------------------------------------------------------------------
-      # Upload the APK as a raw artifact (no ZIP)
-      # ------------------------------------------------------------------
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: ${{ steps.buildozer.outputs.filename }}
-          archive: false
+          archive: false   # keeps the .apk unzipped
 
-      # ------------------------------------------------------------------
-      # Attach the same APK to a GitHub Release when a v* tag is pushed
-      # ------------------------------------------------------------------
       - name: Attach APK to GitHub Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
