@@ -1,75 +1,47 @@
-name: Build Android APK
+name: Build Miranda Organizer
 
 on:
   push:
-    branches: [main, master]
-    tags: ["v*"]
+    branches-ignore:
+      - data
+      - gh-pages
+    tags:
+      - '**'
   pull_request:
-    branches: [main, master]
-  workflow_dispatch:
+    branches-ignore:
+      - data
+      - gh-pages
+
+permissions:
+  contents: write # Required to create a GitHub Release
 
 jobs:
-  build:
-    name: Buildozer Android build
+  build-android:
+    name: Build for Android
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          path: main
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            git zip unzip openjdk-17-jdk python3-pip autoconf libtool \
-            pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libtinfo5 cmake libffi-dev libssl-dev
-          # Cython 0.29.x es el pin conocido que funciona con Kivy 2.3.x en p4a
-          pip install --upgrade pip
-          pip install buildozer "cython==0.29.36"
-
-      - name: Cache Buildozer/SDK/NDK
-        uses: actions/cache@v4
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          path: ~/.buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
+          repository_root: main
+          workdir: .
+          command: buildozer android debug
+          buildozer_version: stable
 
-      - name: Build debug APK
-        run: buildozer android debug
-
-      - name: Upload APK artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: cyro-punch-debug
-          path: bin/*.apk
-          if-no-files-found: error
+          name: package
+          path: ${{ steps.buildozer.outputs.filename }}
 
-  release:
-    name: Publish GitHub Release
-    # Solo al pushear una etiqueta tipo v1.0.0
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download built APK
-        uses: actions/download-artifact@v4
-        with:
-          name: cyro-punch-debug
-          path: release
-
-      - name: Create release with APK
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') # Only runs when a tag is pushed
         with:
-          files: release/*.apk
-          generate_release_notes: true
+          files: ${{ steps.buildozer.outputs.filename }} # Attach the built APK
