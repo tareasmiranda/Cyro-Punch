@@ -1,38 +1,57 @@
-name: Build Miranda Organizer
+[app]
+# (str) Title of your application
+title = Miranda Organizer
 
-on:
-  push:
-    branches-ignore:
-      - data
-      - gh-pages
-    tags:
-      - '**'
-  pull_request:
-    branches-ignore:
-      - data
-      - gh-pages
+# (str) Package name (reverse domain notation)
+package.name = mirandaorganizer
 
-jobs:
-  build-android:
-    name: Build for Android
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: main   # Checkout into a folder named 'main' to match the branch
+# (str) Package domain
+package.domain = org.mirandaorganizer
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          repository_root: main   # Use the folder from the checkout step
-          workdir: .
-          command: buildozer android debug
-          buildozer_version: stable
+# (str) Source code where the main.py lives
+source.dir = .
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+# (list) Source files to include
+source.include_exts = py,png,jpg,kv,atlas,json
+
+# (list) Patterns of files to include (for assets folder)
+source.include_patterns = assets/*
+
+# (str) Application versioning
+version = 1.0
+
+# (list) Application requirements
+requirements = python3,kivy,kivymd,plyer,materialyoucolor,exceptiongroup,asyncgui,asynckivy
+
+# (str) Supported orientation
+orientation = portrait
+
+# (bool) Fullscreen
+fullscreen = 0
+
+# (str) Application icon (path relative to source.dir)
+icon.filename = %(source.dir)s/assets/icon.png
+
+# (list) Android specific permissions
+android.permissions = INTERNET
+
+# (list) Android architectures to build for
+android.archs = arm64-v8a, armeabi-v7a
+
+# (str) Android API to use
+android.api = 31
+
+# (str) Android minimum API
+android.minapi = 21
+
+# (str) Android NDK version
+android.ndk = 23b
+
+# (str) Android SDK version
+android.sdk = 24
+
+# (str) P4A branch
+p4a.branch = master
+
+# (list) Patterns of files to exclude
+source.exclude_patterns = buildozer.spec,.git/**,__pycache__/**,*.pyc,venv/**,.github/**
