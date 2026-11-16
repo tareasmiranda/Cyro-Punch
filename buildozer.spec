@@ -1,4 +1,5 @@
 [app]
+version = 1.0
 title = Cyro-Punch
 package.name = cyropunch
 package.domain = org.cyropunch
