@@ -35,6 +35,9 @@ icon.filename = %(source.dir)s/assets/icon.png
 # (list) Android specific permissions
 android.permissions = INTERNET
 
+# bool, accept the damn license
+android.accept_sdk_license = True
+
 # (list) Android architectures to build for
 android.archs = arm64-v8a, armeabi-v7a
 

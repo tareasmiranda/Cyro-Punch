@@ -25,6 +25,11 @@ jobs:
         with:
           path: main
 
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || \
+          yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses >/dev/null 2>&1 || true
+
       - name: Build with official kivy/buildozer Docker image
         id: buildozer
         run: |
