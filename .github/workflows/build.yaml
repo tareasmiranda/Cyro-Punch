@@ -23,45 +23,35 @@ jobs:
         with:
           path: main
 
-      - name: Accept Android SDK Licenses
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || \
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses >/dev/null 2>&1 || true
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-global-${{ hashFiles('main/buildozer.spec') }}
 
-      - name: Clean Buildozer Cache
-        run: |
-          rm -rf ~/.buildozer/android/packages
-          rm -rf main/.buildozer
+      - name: Cache Buildozer local directory
+        uses: actions/cache@v4
+        with:
+          path: main/.buildozer
+          key: buildozer-local-${{ hashFiles('main/buildozer.spec') }}
 
-      - name: Build Python 3.10 Buildozer image (BallSpins)
-        run: |
-          git clone --depth 1 https://github.com/BallSpins/kivy-build.git
-          docker build -t buildozer:android ./kivy-build
-
-      - name: Build APK with Python 3.10 image
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}/main:/app" \
-            -v "${{ github.workspace }}/.buildozer_global:/root/.buildozer" \
-            -w /app \
-            buildozer:android \
-            android debug
-
-      - name: Find APK
-        id: find_apk
-        run: |
-          APK_PATH=$(find main/bin -name "*.apk" -type f | head -n 1)
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+        with:
+          repository_root: main
+          workdir: .
+          buildozer_version: 1.5.0   # <--- CRITICAL: Pins to a pre-Python 3.14 version
+          command: buildozer android debug
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: package
-          path: ${{ steps.find_apk.outputs.apk_path }}
+          path: ${{ steps.buildozer.outputs.filename }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{ steps.find_apk.outputs.apk_path }}
+          files: ${{ steps.buildozer.outputs.filename }}
