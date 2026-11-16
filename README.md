@@ -27,17 +27,6 @@ Aquí se define:
 
 En otras palabras, este archivo concentra la parte funcional y del comportamiento del programa.
 
-### `interfaz.kv`
-Es el archivo de interfaz gráfica de Kivy.
-
-Aquí se especifican:
-- la estructura visual de la app
-- los widgets y sus propiedades
-- el diseño de pantallas, botones, listas y formularios
-- estilos y distribución de elementos en la interfaz
-
-Este archivo trabaja junto con `main.py`, donde la lógica carga y conecta la UI con la funcionalidad.
-
 ### `listas.json`
 Es el archivo de almacenamiento local.
 
