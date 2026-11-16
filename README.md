@@ -66,14 +66,6 @@ Se usa para guardar:
 
 Es la base de datos sencilla del proyecto mientras la app está siendo usada.
 
-### `requirements.txt`
-Contiene las dependencias del proyecto.
-
-Incluye los paquetes necesarios para ejecutar la aplicación, principalmente:
-- Kivy
-- KivyMD
-
-Esto permite instalar fácilmente todas las librerías requeridas con pip.
 
 ## Resumen
 
