@@ -35,20 +35,13 @@ jobs:
           path: main/.buildozer
           key: buildozer-local-${{ hashFiles('main/buildozer.spec') }}
 
-	- name: Patch Dockerfile to use default OpenJDK
-	  run: |
-	    # Replace the openjdk-r PPA line with a direct install from default repos
-	    sed -i '/ppa:openjdk-r\/ppa/d' Dockerfile
-	    # Ensure openjdk-17-jdk is still installed (it should be available in default repos)
-	    sed -i 's/RUN sudo apt-get -y install openjdk-17-jdk/RUN sudo apt-get -y install openjdk-17-jdk/' Dockerfile
-
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
         with:
           repository_root: main
           workdir: .
-          buildozer_version: 1.5.0   # <--- CRITICAL: Pins to a pre-Python 3.14 version
+          buildozer_version: 1.5.0
           command: buildozer android debug
 
       - name: Upload artifacts
