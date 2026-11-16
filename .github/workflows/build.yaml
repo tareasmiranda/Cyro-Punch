@@ -1,4 +1,4 @@
-name: Build
+name: Build APK with Buildozer
 
 on:
   push:
@@ -15,34 +15,72 @@ permissions:
 jobs:
   build-android:
     name: Build for Android
-    # ubuntu-latest is now Ubuntu 26.04 (Python 3.14).
-    # Pin to 22.04 to match the toolchain the Docker image expects.
+    # Pin to 22.04 – its Python 3.10 is compatible with Kivy 2.3.x.
+    # Do NOT use ubuntu-latest: it is now Ubuntu 26.04 (Python 3.14),
+    # which breaks the official Buildozer Docker image.
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1.2.0
-        id: buildozer
-        with:
-          # Set this to the folder that contains buildozer.spec and main.py.
-          # If everything is at the repo root, use "." (or omit it).
-          # If your files are in a subfolder called test_app, keep "test_app".
-          workdir: .
-          buildozer_version: stable
+      # ------------------------------------------------------------------
+      # Install system dependencies required by Buildozer / python-for-android
+      # ------------------------------------------------------------------
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip python3-setuptools python3-venv \
+            autoconf automake libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake libffi-dev libssl-dev
 
-      - name: Upload artifacts
+      # ------------------------------------------------------------------
+      # Install Buildozer and its Python dependencies
+      # ------------------------------------------------------------------
+      - name: Install Buildozer
+        run: |
+          pip3 install --upgrade pip
+          pip3 install buildozer cython==0.29.36
+
+      # ------------------------------------------------------------------
+      # Optional: cache the .buildozer directory to speed up future runs
+      # ------------------------------------------------------------------
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v3
+        with:
+          path: .buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+
+      # ------------------------------------------------------------------
+      # Build the debug APK
+      # ------------------------------------------------------------------
+      - name: Build with Buildozer
+        id: buildozer
+        run: |
+          buildozer android debug
+          # Expose the generated APK path for later steps
+          echo "filename=$(find bin -name '*.apk' | head -n1)" >> $GITHUB_OUTPUT
+
+      # ------------------------------------------------------------------
+      # Upload the APK as a raw artifact (no ZIP)
+      # ------------------------------------------------------------------
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: ${{ steps.buildozer.outputs.filename }}
           archive: false
 
+      # ------------------------------------------------------------------
+      # Attach the same APK to a GitHub Release when a v* tag is pushed
+      # ------------------------------------------------------------------
       - name: Attach APK to GitHub Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.buildozer.outputs.filename }}
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
