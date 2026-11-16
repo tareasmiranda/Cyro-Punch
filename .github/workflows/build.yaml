@@ -35,14 +35,19 @@ jobs:
           path: main/.buildozer
           key: buildozer-local-${{ hashFiles('main/buildozer.spec') }}
 
-      - name: Build with Buildozer
-        uses: tareasmiranda/buildozer-action@master
-        id: buildozer
+      - name: Buildozer action (fix)
+        # You may pin to the exact commit or the version.
+        # uses: gxosty/buildozer-action@cfc8b8ad4542146d18aaf2b495f36c13104ddd8c
+        uses: gxosty/buildozer-action@1.0.8
         with:
-          repository_root: main
-          workdir: .
-          buildozer_version: 1.6.0
-          command: buildozer android debug
+          # Command to start Buildozer. Set to `buildozer ios debug` for iOS
+          command: # default is buildozer android debug
+          # Path to cloned repository. Set if you specified path for `actions/checkout` action.
+          repository_root: # default is .
+          # Working directory where buildozer.spec is located. Set to `src` if buildozer.spec is in `src` directory. Defaults to `.`
+          workdir: # default is .
+          # Version of Buildozer to install. By default installs latest release
+          buildozer_version: # default is stable
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
