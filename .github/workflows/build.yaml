@@ -36,7 +36,7 @@ jobs:
           key: buildozer-local-${{ hashFiles('main/buildozer.spec') }}
 
       - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
+        uses: tareasmiranda/buildozer-action@v1
         id: buildozer
         with:
           repository_root: main
