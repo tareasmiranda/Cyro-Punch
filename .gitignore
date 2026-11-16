@@ -30,15 +30,9 @@ usuarios.json
 .kivy/
 *.log
 
-# --- Buildozer (Android/iOS Deployment) ---
-# Exclude the hidden buildozer folder, local specs, and outputs
-.buildozer/
-bin/
-*.spec
 
 # --- PyInstaller (Desktop Executables) ---
 *.manifest
-*.spec
 
 # --- IDEs and System Files ---
 .idea/
