@@ -2,7 +2,6 @@
 
 MirandaOrganizer es una aplicación orientada a usuarios que buscan organizar y administrar sus compras semanales de manera sencilla, clara y eficiente. Está diseñada considerando especialmente las necesidades de personas que valoran la planificación y el orden en sus actividades cotidianas, sin interrupciones molestas como publicidad que pueda distraerte de lo que realmente necesitas hacer para mejorar tu productividad.
 
-Su principal elemento diferenciador frente a otras aplicaciones de listas de compras es que su desarrollo se basa en las opiniones, necesidades y experiencias de los propios usuarios, buscando ofrecer una herramienta práctica, accesible y adaptada a sus hábitos de compra.
 
 ## Metodología de investigación
    Link Encuesta: https://forms.gle/fUqRz53M5f1b9C176
