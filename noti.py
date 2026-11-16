@@ -2,25 +2,25 @@
 Notificaciones · Lista de compras
 =================================
 
-Muestra una notificación local cuando el usuario tiene listas pendientes.
+Muestra una notificación local cuando, al agregar un artículo a una lista,
+ese mismo artículo (por nombre) tiene un precio más bajo en otro comercio
+según el historial global de precios.
 
-Estrategia por capas (todas con logging para que se vea en consola):
+La notificación se programa con un pequeño retraso (`delay`) para que la
+ventana ya esté dibujada cuando aparezca el aviso.
+
+Estrategia por capas (todas con logging):
 
   1. plyer.notification  (multi-plataforma; el camino principal).
   2. Fallback nativo según la plataforma:
         Linux   → `notify-send`
         macOS   → `osascript`
         Windows → `winotify` (o `win10toast`)
-        Android → plyer (necesita POST_NOTIFICATIONS en buildozer.spec)
   3. Si todo falla, se registra un warning.
 
-La notificación se programa con un pequeño retraso (`delay`), para que la
-ventana ya esté visible cuando aparezca el aviso. Llamarla desde on_start
-sin retraso es la causa nº1 de "no se ve la notificación".
-
 Uso desde main.py:
-    from noti import notify_pending_lists
-    notify_pending_lists(self.lists, self.lang)
+    from noti import notify_cheaper_store, notify_test
+    notify_cheaper_store("Leche", "Lider", 1500, "Jumbo", 1200, "es")
 
 Instalación recomendada (según sistema):
     pip install plyer
@@ -41,23 +41,22 @@ APP_NAME = "Lista de compras"
 # ─────────────────────────────────────────────────────────────────────
 #  Mensajes
 # ─────────────────────────────────────────────────────────────────────
-def _build_message(lists, lang):
-    """Devuelve (título, cuerpo) para la notificación."""
-    n = len(lists)
+def _format_price(value):
+    return "$" + f"{int(value):,}".replace(",", ".")
+
+
+def _build_cheaper_message(item_name, current_store, current_price,
+                           cheaper_store, cheaper_price, lang):
+    current_txt = _format_price(current_price)
+    cheaper_txt = _format_price(cheaper_price)
     if lang == "en":
-        title = "Shopping list"
-        if n == 1:
-            name = lists[0].get("name") or "your list"
-            body = f'You have a pending list: "{name}".'
-        else:
-            body = f"You have {n} pending lists."
+        title = "Better price found"
+        body = (f'"{item_name}" is cheaper at {cheaper_store} '
+                f'({cheaper_txt}) than at {current_store} ({current_txt}).')
     else:
-        title = "Lista de compras"
-        if n == 1:
-            name = lists[0].get("name") or "tu lista"
-            body = f'Tienes una lista pendiente: "{name}".'
-        else:
-            body = f"Tienes {n} listas pendientes."
+        title = "Mejor precio encontrado"
+        body = (f'"{item_name}" está más barato en {cheaper_store} '
+                f'({cheaper_txt}) que en {current_store} ({current_txt}).')
     return title, body
 
 
@@ -85,7 +84,6 @@ def _try_plyer(title, body, timeout):
 
 
 def _try_notify_send(title, body):
-    """Fallback Linux: `notify-send` (paquete libnotify-bin)."""
     if not shutil.which("notify-send"):
         Logger.warning("Noti: 'notify-send' no está instalado "
                        "(sudo apt install libnotify-bin)")
@@ -104,7 +102,6 @@ def _try_notify_send(title, body):
 
 
 def _try_osascript(title, body):
-    """Fallback macOS: `osascript` (Notification Center)."""
     safe_body = body.replace('"', "'")
     safe_title = title.replace('"', "'")
     script = f'display notification "{safe_body}" with title "{safe_title}"'
@@ -122,7 +119,6 @@ def _try_osascript(title, body):
 
 
 def _try_winotify(title, body):
-    """Fallback Windows: `winotify` (toast nativo de Win10/11)."""
     try:
         from winotify import Notification
     except ImportError:
@@ -140,7 +136,6 @@ def _try_winotify(title, body):
 
 
 def _try_win10toast(title, body):
-    """Último recurso Windows: `win10toast`."""
     try:
         from win10toast import ToastNotifier
     except ImportError:
@@ -157,18 +152,9 @@ def _try_win10toast(title, body):
 # ─────────────────────────────────────────────────────────────────────
 #  Orquestación
 # ─────────────────────────────────────────────────────────────────────
-def _show(lists, lang, timeout):
-    if not lists:
-        Logger.info("Noti: no hay listas pendientes, no se muestra nada")
-        return False
-
-    title, body = _build_message(lists, lang)
-
-    # 1) plyer (Android / iOS / Linux / macOS / Windows)
+def _show(title, body, timeout):
     if _try_plyer(title, body, timeout):
         return True
-
-    # 2) fallback según plataforma
     if platform == "linux" and _try_notify_send(title, body):
         return True
     if platform == "macosx" and _try_osascript(title, body):
@@ -178,26 +164,26 @@ def _show(lists, lang, timeout):
             return True
         if _try_win10toast(title, body):
             return True
-
     Logger.error("Noti: no se pudo mostrar la notificación por ningún medio")
     return False
 
 
-def notify_pending_lists(lists, lang="es", timeout=10, delay=1.2):
-    """Programa la notificación `delay` segundos después de la llamada.
-
-    El retraso es importante: llamarla directamente en on_start a veces
-    ocurre antes de que la ventana exista y algunos backends la descartan.
-    Devuelve True si se programó (no garantiza que se muestre; eso lo
-    decide `_show`, que además deja log).
-    """
-    if not lists:
-        return False
-    Clock.schedule_once(lambda dt: _show(lists, lang, timeout), delay)
+def notify_cheaper_store(item_name, current_store, current_price,
+                         cheaper_store, cheaper_price, lang="es",
+                         timeout=10, delay=0.5):
+    """Notifica que `item_name` está más barato en `cheaper_store`."""
+    title, body = _build_cheaper_message(
+        item_name, current_store, current_price,
+        cheaper_store, cheaper_price, lang,
+    )
+    Clock.schedule_once(lambda dt: _show(title, body, timeout), delay)
     return True
 
 
 def notify_test(lang="es"):
     """Dispara una notificación de prueba (usada por el botón de Ajustes)."""
-    fake = [{"id": "test", "name": "Prueba" if lang == "es" else "Test"}]
-    return notify_pending_lists(fake, lang, delay=0.1)
+    if lang == "en":
+        return notify_cheaper_store("Milk", "Lider", 1500, "Jumbo", 1200,
+                                    lang, delay=0.1)
+    return notify_cheaper_store("Leche", "Lider", 1500, "Jumbo", 1200,
+                                lang, delay=0.1)

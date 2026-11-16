@@ -1,0 +1,1135 @@
+# ══════════ Base ══════════════════════════════════════════════════════════
+
+<Pressable>:
+    opacity: 0.8 if self.state == "down" else 1
+
+<BaseTxt>:
+    font_name: app.font_name
+    color: app.text_color
+    font_size: sp(16)
+    halign: "left"
+    valign: "middle"
+
+<Txt>:
+    size_hint_y: None
+    text_size: self.width, None
+    height: self.texture_size[1]
+
+<TxtAuto>:
+    size_hint: None, None
+    text_size: None, None
+    size: self.texture_size
+
+<Icon@MDIcon>:
+    theme_font_size: "Custom"
+    font_size: sp(24)
+    icon_color: app.text_color
+
+<Glyph@MDIcon>:
+    theme_font_size: "Custom"
+    font_size: sp(24)
+
+<PlainLabel@Label>:
+    font_name: app.font_name
+    font_size: sp(15)
+    size_hint: None, None
+    text_size: None, None
+    size: self.texture_size
+
+<PillIcon@MDIcon>:
+    theme_font_size: "Custom"
+    font_size: sp(20)
+    icon_color: app.accent_fg_color
+
+<PillLabel@Label>:
+    font_name: app.font_name
+    bold: True
+    font_size: sp(17)
+    size_hint: None, None
+    text_size: None, None
+    size: self.texture_size
+    color: app.accent_fg_color
+
+<FieldInput@TextInput>:
+    font_name: app.font_name
+    font_size: sp(16.5)
+    foreground_color: app.text_color
+    hint_text_color: app.muted_color
+    cursor_color: app.accent_color
+    selection_color: list(app.accent_color)[:3] + [.35]
+    background_color: 0, 0, 0, 0
+    background_normal: ""
+    background_active: ""
+    background_disabled_normal: ""
+    padding: 0, 0, 0, 0
+    write_tab: False
+
+# ══════════ Componentes ═══════════════════════════════════════════════════
+
+<Card>:
+    canvas.before:
+        Color:
+            rgba: self.fill_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.radius]
+        Color:
+            rgba: self.border_color
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, self.radius)
+            width: 1
+
+<PillButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint: None, None
+    height: dp(54)
+    width: content.width + dp(40)
+    canvas.before:
+        Color:
+            rgba: app.accent_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+    BoxLayout:
+        id: content
+        size_hint: None, None
+        height: dp(54)
+        width: self.minimum_width
+        spacing: dp(8)
+        PillIcon:
+            icon: root.icon
+            pos_hint: {"center_y": .5}
+        PillLabel:
+            text: root.text
+            pos_hint: {"center_y": .5}
+
+<FormButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint_y: None
+    height: dp(54)
+    canvas.before:
+        Color:
+            rgba: app.accent_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+    BoxLayout:
+        size_hint: None, None
+        height: dp(54)
+        width: self.minimum_width
+        spacing: dp(8)
+        PillIcon:
+            icon: root.icon
+            pos_hint: {"center_y": .5}
+        PillLabel:
+            text: root.text
+            pos_hint: {"center_y": .5}
+
+<AddButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint: None, None
+    size: dp(54), dp(54)
+    canvas.before:
+        Color:
+            rgba: app.accent_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(16)]
+    PillIcon:
+        icon: root.icon
+        font_size: sp(26)
+
+<LinkButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint_y: None
+    height: dp(40)
+    PlainLabel:
+        text: root.text
+        color: root.tint
+        bold: True
+
+<IconButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint: None, None
+    size: dp(44), dp(44)
+    canvas.before:
+        Color:
+            rgba: app.surface_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(14)]
+    Icon:
+        icon: root.icon
+        icon_color: app.text_color
+        font_size: sp(22)
+
+<DeleteButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint: None, None
+    size: dp(34), dp(34)
+    Glyph:
+        icon: "close"
+        icon_color: app.muted_color
+        font_size: sp(18)
+
+<NavItem>:
+    anchor_x: "center"
+    anchor_y: "center"
+    canvas.before:
+        Color:
+            rgba: app.surface_alt_color if self.active else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(18)]
+    BoxLayout:
+        orientation: "vertical"
+        size_hint: 1, None
+        height: self.minimum_height
+        spacing: dp(4)
+        Icon:
+            icon: root.icon
+            icon_color: app.accent_color if root.active else app.subtle_color
+            font_size: sp(24)
+            pos_hint: {"center_x": .5}
+        TxtAuto:
+            text: root.text
+            bold: root.active
+            color: app.text_color if root.active else app.subtle_color
+            font_size: sp(12.5)
+            pos_hint: {"center_x": .5}
+
+<CheckMark>:
+    size_hint: None, None
+    size: dp(26), dp(26)
+    canvas:
+        Color:
+            rgba: app.accent_color if self.active else app.check_border_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(8)]
+        Color:
+            rgba: (0, 0, 0, 0) if self.active else app.surface_color
+        RoundedRectangle:
+            pos: self.x + dp(2.2), self.y + dp(2.2)
+            size: self.width - dp(4.4), self.height - dp(4.4)
+            radius: [dp(5.8)]
+        Color:
+            rgba: app.accent_fg_color if self.active else (0, 0, 0, 0)
+        Line:
+            points:
+                [ \
+                self.x + self.width * .28, self.y + self.height * .50, \
+                self.x + self.width * .44, self.y + self.height * .33, \
+                self.x + self.width * .73, self.y + self.height * .68 \
+                ]
+            width: dp(1.8)
+            cap: "round"
+            joint: "round"
+
+<SoftProgress>:
+    size_hint_y: None
+    height: dp(5)
+    canvas:
+        Color:
+            rgba: app.track_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+        Color:
+            rgba: app.accent_color
+        RoundedRectangle:
+            pos: self.pos
+            size: max(self.width * self.value, self.height if self.value > 0 else 0), self.height
+            radius: [self.height / 2]
+
+<ToggleSwitch>:
+    size_hint: None, None
+    size: dp(50), dp(30)
+    canvas:
+        Color:
+            rgba: mix(app.track_color, app.accent_color, self.progress)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+        Color:
+            rgba: app.bg_color
+        Ellipse:
+            pos:
+                self.x + dp(4) + (self.width - dp(8) - dp(22)) * self.progress, \
+                self.y + dp(4)
+            size: dp(22), dp(22)
+
+# ── Campos de texto ──────────────────────────────────────────────────────
+
+<FieldBase>:
+    orientation: "horizontal"
+    size_hint_y: None
+    height: dp(54)
+    spacing: dp(12)
+    fill_color: app.bg_color
+    border_color: (0.94, 0.33, 0.31, 1) if self.error else app.border_color
+    radius: dp(16)
+
+<InputField>:
+    padding: dp(16), 0
+    Glyph:
+        icon: root.icon
+        icon_color: app.accent_color
+        font_size: sp(22)
+        pos_hint: {"center_y": .5}
+    FieldInput:
+        text: root.text
+        on_text: root.text = self.text
+        hint_text: root.hint
+        multiline: False
+        padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
+        on_text_validate: root.dispatch("on_submit")
+
+<QuickInput>:
+    padding: dp(14), 0
+    FieldInput:
+        text: root.text
+        on_text: root.text = self.text
+        hint_text: root.hint
+        multiline: False
+        input_filter: "int" if root.numeric else None
+        input_type: "number" if root.numeric else "text"
+        padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
+        on_text_validate: root.dispatch("on_submit")
+
+# ── Opción de tipo de lista (Checklist / Notepad) ────────────────────────
+
+<TypeOption>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: dp(122)
+    padding: dp(14)
+    spacing: dp(6)
+    fill_color: app.bg_color
+    border_color: app.accent_color if self.selected else app.border_color
+    radius: dp(16)
+    BoxLayout:
+        size_hint_y: None
+        height: dp(24)
+        Glyph:
+            icon: root.icon
+            icon_color: app.accent_color if root.selected else app.text_color
+            font_size: sp(22)
+            pos_hint: {"center_y": .5}
+        Widget:
+        Widget:
+            size_hint: None, None
+            size: dp(20), dp(20)
+            pos_hint: {"center_y": .5}
+            canvas:
+                Color:
+                    rgba: app.accent_color if root.selected else app.check_border_color
+                Line:
+                    circle: (self.center_x, self.center_y, dp(9.5))
+                    width: dp(1.5)
+                Color:
+                    rgba: app.accent_color if root.selected else (0, 0, 0, 0)
+                Ellipse:
+                    pos: self.center_x - dp(5), self.center_y - dp(5)
+                    size: dp(10), dp(10)
+    Txt:
+        text: root.title
+        bold: True
+        font_size: sp(15.5)
+    Txt:
+        text: root.desc
+        font_size: sp(12.5)
+        color: app.muted_color
+
+# ── Tarjeta de una lista (pantalla "Mis listas") ─────────────────────────
+
+<ListCard>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(24), dp(24), dp(24), dp(22)
+    spacing: dp(20)
+    fill_color: app.surface_color
+    border_color: app.border_color
+    radius: dp(22)
+    on_release: app.open_list(root.list_id)
+    BoxLayout:
+        size_hint_y: None
+        height: dp(48)
+        spacing: dp(16)
+        AnchorLayout:
+            size_hint: None, None
+            size: dp(48), dp(48)
+            canvas.before:
+                Color:
+                    rgba: app.surface_alt_color
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(14)]
+            Glyph:
+                icon: root.icon
+                icon_color: app.accent_color
+                font_size: sp(26)
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            pos_hint: {"center_y": .5}
+            spacing: dp(2)
+            Txt:
+                text: root.name
+                bold: True
+                font_size: sp(17)
+                shorten: True
+                shorten_from: "right"
+            Txt:
+                text: root.subtitle
+                font_size: sp(14)
+                color: app.muted_color
+        Glyph:
+            icon: "chevron-right"
+            icon_color: app.muted_color
+            font_size: sp(20)
+            pos_hint: {"center_y": .5}
+    BoxLayout:
+        size_hint_y: None
+        height: dp(18)
+        spacing: dp(9)
+        Widget:
+            size_hint: None, None
+            size: dp(8), dp(8)
+            pos_hint: {"center_y": .5}
+            canvas:
+                Color:
+                    rgba: app.accent_color
+                Ellipse:
+                    pos: self.pos
+                    size: self.size
+        Txt:
+            text: root.meta
+            font_size: sp(12.5)
+            color: app.muted_color
+            pos_hint: {"center_y": .5}
+            shorten: True
+            shorten_from: "right"
+
+<EmptyState>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: dp(230)
+    spacing: dp(10)
+    padding: 0, dp(50), 0, 0
+    Glyph:
+        icon: "clipboard-list-outline"
+        icon_color: app.subtle_color
+        font_size: sp(52)
+        pos_hint: {"center_x": .5}
+    Txt:
+        text: app.tr(app.lang, "no_lists")
+        halign: "center"
+        bold: True
+        font_size: sp(18)
+    Txt:
+        text: app.tr(app.lang, "no_lists_sub")
+        halign: "center"
+        font_size: sp(14.5)
+        color: app.muted_color
+
+<ItemsScroll@ScrollView>:
+    bar_width: 0
+    do_scroll_x: False
+    GridLayout:
+        id: item_list
+        cols: 1
+        size_hint_y: None
+        height: max(self.minimum_height, root.height)
+        spacing: dp(8)
+
+<NotesCard@Card>:
+    padding: 0
+    fill_color: app.surface_color
+    border_color: app.border_color
+    radius: dp(20)
+    FieldInput:
+        text: app.detail_notes
+        on_text: app.set_notes(self.text)
+        hint_text: app.tr(app.lang, "notes_hint")
+        multiline: True
+        padding: dp(18), dp(18), dp(18), dp(18)
+
+<ShoppingItem>:
+    size_hint_y: None
+    height: dp(62)
+    padding: dp(18), 0, dp(10), 0
+    spacing: dp(14)
+    radius: dp(16)
+    fill_color: app.surface_color
+    CheckMark:
+        active: root.done
+        pos_hint: {"center_y": .5}
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_y: None
+        height: self.minimum_height
+        pos_hint: {"center_y": .5}
+        Txt:
+            text: root.title_markup
+            markup: True
+            font_size: sp(16.5)
+            color: app.muted_color if root.done else app.text_color
+            shorten: True
+            shorten_from: "right"
+    TxtAuto:
+        text: root.price_text
+        font_size: sp(15)
+        bold: True
+        color: app.muted_color if root.done else app.accent_color
+        pos_hint: {"center_y": .5}
+    DeleteButton:
+        pos_hint: {"center_y": .5}
+        on_release: app.delete_item(root)
+
+<SettingRow>:
+    size_hint_y: None
+    height: dp(62)
+    padding: dp(18), 0, dp(16), 0
+    spacing: dp(14)
+    radius: dp(16)
+    fill_color: app.surface_color
+    Icon:
+        icon: root.icon
+        icon_color: app.muted_color
+        font_size: sp(22)
+        pos_hint: {"center_y": .5}
+    Txt:
+        text: root.text
+        font_size: sp(16.5)
+        pos_hint: {"center_y": .5}
+
+<LangOption>:
+    orientation: "horizontal"
+    size_hint_y: None
+    height: dp(48)
+    padding: dp(16), 0
+    spacing: dp(10)
+    canvas.before:
+        Color:
+            rgba: app.surface_alt_color if self.selected else (0, 0, 0, 0)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Txt:
+        text: root.label
+        color: app.accent_color if root.selected else app.text_color
+        bold: root.selected
+        font_size: sp(15.5)
+        pos_hint: {"center_y": .5}
+    Icon:
+        icon: "check"
+        icon_color: app.accent_color
+        font_size: sp(17)
+        opacity: 1 if root.selected else 0
+        pos_hint: {"center_y": .5}
+
+<LanguageDropDown>:
+    auto_width: False
+    width: dp(190)
+    canvas.before:
+        Color:
+            rgba: app.surface_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(14)]
+        Color:
+            rgba: app.border_color
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, dp(14))
+            width: 1
+    LangOption:
+        code: "es"
+        label: "Español"
+        selected: app.lang == "es"
+        on_release:
+            app.set_language("es")
+            root.dismiss()
+    LangOption:
+        code: "en"
+        label: "English"
+        selected: app.lang == "en"
+        on_release:
+            app.set_language("en")
+            root.dismiss()
+
+<BottomNav@BoxLayout>:
+    size_hint_y: None
+    height: dp(84)
+    padding: dp(14), dp(11)
+    spacing: dp(6)
+    canvas.before:
+        Color:
+            rgba: app.nav_bg_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: app.border_color
+        Line:
+            points: self.x, self.top, self.right, self.top
+            width: 1
+    NavItem:
+        key: "inicio"
+        icon: "home-outline"
+        text: app.tr(app.lang, "nav_home")
+        active: app.current_tab == self.key
+        on_release: app.go(self.key)
+    NavItem:
+        key: "listas"
+        icon: "format-list-checks"
+        text: app.tr(app.lang, "nav_lists")
+        active: app.current_tab == self.key
+        on_release: app.go(self.key)
+    NavItem:
+        key: "ajustes"
+        icon: "tune-variant"
+        text: app.tr(app.lang, "nav_settings")
+        active: app.current_tab == self.key
+        on_release: app.go(self.key)
+
+# ══════════ Pantallas ═════════════════════════════════════════════════════
+
+<LoginScreen@MDScreen>:
+    name: "login"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(48), dp(24), dp(32)
+        spacing: dp(14)
+
+        Widget:
+            size_hint_y: 0.15
+
+        AnchorLayout:
+            size_hint_y: None
+            height: dp(84)
+            Glyph:
+                icon: "basket-outline"
+                icon_color: app.accent_color
+                font_size: sp(64)
+                pos_hint: {"center_x": .5, "center_y": .5}
+
+        Txt:
+            text: app.tr(app.lang, "login_title")
+            font_size: sp(28)
+            bold: True
+            halign: "center"
+
+        Txt:
+            text: app.tr(app.lang, "login_subtitle_login") if app.auth_mode == "login" else app.tr(app.lang, "login_subtitle_register")
+            font_size: sp(14)
+            color: app.muted_color
+            halign: "center"
+            line_height: 1.25
+
+        Widget:
+            size_hint_y: 0.06
+
+        Card:
+            size_hint_y: None
+            height: dp(56)
+            fill_color: app.surface_color
+            border_color: app.border_color
+            padding: dp(14), 0
+            BoxLayout:
+                spacing: dp(12)
+                Glyph:
+                    icon: "account-outline"
+                    icon_color: app.muted_color
+                    font_size: sp(22)
+                    size_hint: None, 1
+                    width: dp(24)
+                FieldInput:
+                    text: app.auth_username
+                    on_text: app.auth_username = self.text
+                    on_text_validate: app.submit_auth()
+                    hint_text: app.tr(app.lang, "username_hint")
+                    multiline: False
+                    padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
+
+        Card:
+            size_hint_y: None
+            height: dp(56)
+            fill_color: app.surface_color
+            border_color: app.border_color
+            padding: dp(14), 0
+            BoxLayout:
+                spacing: dp(12)
+                Glyph:
+                    icon: "lock-outline"
+                    icon_color: app.muted_color
+                    font_size: sp(22)
+                    size_hint: None, 1
+                    width: dp(24)
+                FieldInput:
+                    text: app.auth_password
+                    on_text: app.auth_password = self.text
+                    on_text_validate: app.submit_auth()
+                    password: True
+                    hint_text: app.tr(app.lang, "password_hint")
+                    multiline: False
+                    padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
+
+        BaseTxt:
+            text: app.auth_error
+            font_size: sp(13)
+            color: 1, 0.42, 0.42, 1
+            halign: "center"
+            valign: "middle"
+            text_size: self.width, None
+            size_hint_y: None
+            height: dp(20) if app.auth_error else 0
+            opacity: 1 if app.auth_error else 0
+
+        Widget:
+            size_hint_y: 0.05
+
+        FormButton:
+            text: app.tr(app.lang, "login") if app.auth_mode == "login" else app.tr(app.lang, "create_account")
+            icon: "arrow-right"
+            on_release: app.submit_auth()
+            size_hint_y: None
+            height: dp(56)
+
+        LinkButton:
+            text: app.tr(app.lang, "switch_to_register") if app.auth_mode == "login" else app.tr(app.lang, "switch_to_login")
+            tint: app.muted_color
+            on_release: app.toggle_auth_mode()
+            opacity: 1 if app.has_users else 0
+            disabled: not app.has_users
+
+        Widget:
+
+<InicioScreen@MDScreen>:
+    name: "inicio"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(64), dp(24), dp(40)
+        spacing: dp(14)
+        Txt:
+            text: app.tr(app.lang, "greeting")
+            font_size: sp(38)
+            bold: True
+            line_height: 1.08
+        Txt:
+            text: app.tr(app.lang, "greeting_sub")
+            font_size: sp(16)
+            color: app.muted_color
+            line_height: 1.25
+        Widget:
+        AnchorLayout:
+            anchor_x: "right"
+            anchor_y: "bottom"
+            size_hint_y: None
+            height: dp(54)
+            PillButton:
+                text: app.tr(app.lang, "new_list")
+                icon: "plus"
+                on_release: app.open_form_new()
+
+<ListasScreen@MDScreen>:
+    name: "listas"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(64), dp(24), dp(24)
+        spacing: dp(26)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(56)
+            spacing: dp(12)
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(2)
+                Txt:
+                    text: app.tr(app.lang, "my_lists")
+                    font_size: sp(30)
+                    bold: True
+                Txt:
+                    text: "{} {}".format(app.lists_count, app.tr(app.lang, "active_list_one") if app.lists_count == 1 else app.tr(app.lang, "active_list_many"))
+                    font_size: sp(14.5)
+                    color: app.muted_color
+            PillButton:
+                text: app.tr(app.lang, "add")
+                icon: "plus"
+                pos_hint: {"top": 1}
+                on_release: app.open_form_new()
+        ScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            BoxLayout:
+                id: lists_box
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(14)
+
+<NuevaScreen@MDScreen>:
+    name: "nueva"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(56), dp(24), dp(12)
+        spacing: dp(18)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(60)
+            spacing: dp(12)
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                pos_hint: {"center_y": .5}
+                spacing: dp(2)
+                Txt:
+                    text: app.tr(app.lang, "new_list_title" if app.form_mode == "new" else "edit_list_title")
+                    font_size: sp(30)
+                    bold: True
+                Txt:
+                    text: app.tr(app.lang, "new_list_sub" if app.form_mode == "new" else "edit_list_sub")
+                    font_size: sp(14.5)
+                    color: app.muted_color
+            IconButton:
+                icon: "close"
+                pos_hint: {"center_y": .5}
+                on_release: app.cancel_form()
+        ScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(14)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: dp(22)
+                    spacing: dp(10)
+                    fill_color: app.surface_color
+                    border_color: app.border_color
+                    radius: dp(24)
+                    Txt:
+                        text: app.tr(app.lang, "list_name")
+                        bold: True
+                        font_size: sp(14.5)
+                    InputField:
+                        id: name_field
+                        icon: "format-list-bulleted"
+                        hint: app.tr(app.lang, "list_name_hint")
+                        text: app.form_name
+                        on_text:
+                            app.form_name = self.text
+                            self.error = False
+                        on_submit: app.submit_form()
+                    Widget:
+                        size_hint_y: None
+                        height: dp(4)
+                    Txt:
+                        text: app.tr(app.lang, "store")
+                        bold: True
+                        font_size: sp(14.5)
+                    InputField:
+                        id: store_field
+                        icon: "storefront-outline"
+                        hint: app.tr(app.lang, "store_hint")
+                        text: app.form_store
+                        on_text: app.form_store = self.text
+                        on_submit: app.submit_form()
+                    BoxLayout:
+                        orientation: "vertical"
+                        size_hint_y: None
+                        height: self.minimum_height if app.form_mode == "new" else 0
+                        opacity: 1 if app.form_mode == "new" else 0
+                        disabled: app.form_mode != "new"
+                        spacing: dp(10)
+                        Widget:
+                            size_hint_y: None
+                            height: dp(4)
+                        Txt:
+                            text: app.tr(app.lang, "list_type")
+                            bold: True
+                            font_size: sp(14.5)
+                        BoxLayout:
+                            size_hint_y: None
+                            height: dp(122)
+                            spacing: dp(12)
+                            TypeOption:
+                                key: "checklist"
+                                icon: "format-list-checks"
+                                title: app.tr(app.lang, "checklist")
+                                desc: app.tr(app.lang, "checklist_desc")
+                                selected: app.form_type == self.key
+                                on_release: app.form_type = self.key
+                            TypeOption:
+                                key: "notepad"
+                                icon: "note-edit-outline"
+                                title: app.tr(app.lang, "notepad")
+                                desc: app.tr(app.lang, "notepad_desc")
+                                selected: app.form_type == self.key
+                                on_release: app.form_type = self.key
+                        Widget:
+                            size_hint_y: None
+                            height: dp(4)
+                    FormButton:
+                        text: app.tr(app.lang, "create_list" if app.form_mode == "new" else "save_changes")
+                        icon: "check"
+                        on_release: app.submit_form()
+                    LinkButton:
+                        text: app.tr(app.lang, "cancel")
+                        tint: app.muted_color
+                        on_release: app.cancel_form()
+                    LinkButton:
+                        text: (app.tr(app.lang, "confirm_delete") if app.delete_armed else app.tr(app.lang, "delete_list")) if app.form_mode == "edit" else ""
+                        tint: 0.94, 0.33, 0.31, 1
+                        height: dp(40) if app.form_mode == "edit" else 0
+                        disabled: app.form_mode != "edit"
+                        on_release: app.request_delete()
+                Card:
+                    size_hint_y: None
+                    height: dp(76)
+                    padding: dp(16), 0
+                    spacing: dp(14)
+                    fill_color: app.surface_color
+                    border_color: app.border_color
+                    radius: dp(20)
+                    AnchorLayout:
+                        size_hint: None, None
+                        size: dp(44), dp(44)
+                        pos_hint: {"center_y": .5}
+                        canvas.before:
+                            Color:
+                                rgba: app.surface_alt_color
+                            Ellipse:
+                                pos: self.pos
+                                size: self.size
+                        Glyph:
+                            icon: "information-outline"
+                            icon_color: app.accent_color
+                            font_size: sp(22)
+                    Txt:
+                        text: app.tr(app.lang, "info_new" if app.form_mode == "new" else "info_edit")
+                        font_size: sp(14)
+                        color: app.muted_color
+                        pos_hint: {"center_y": .5}
+
+<DetalleScreen@MDScreen>:
+    name: "detalle"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(56), dp(24), dp(24)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(52)
+            spacing: dp(14)
+            IconButton:
+                icon: "arrow-left"
+                pos_hint: {"center_y": .5}
+                on_release: app.go("listas")
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                pos_hint: {"center_y": .5}
+                spacing: dp(1)
+                Txt:
+                    text: app.detail_name
+                    font_size: sp(26)
+                    bold: True
+                    shorten: True
+                    shorten_from: "right"
+                Txt:
+                    text: app.detail_meta
+                    font_size: sp(14)
+                    color: app.muted_color
+                    shorten: True
+                    shorten_from: "right"
+            IconButton:
+                icon: "pencil-outline"
+                pos_hint: {"center_y": .5}
+                on_release: app.open_form_edit()
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height if app.detail_kind == "checklist" else 0
+            opacity: 1 if app.detail_kind == "checklist" else 0
+            padding: 0, dp(18), 0, 0
+            spacing: dp(9)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(16)
+                Txt:
+                    text: app.tr(app.lang, "completed_of").format(app.done_items, app.total_items)
+                    font_size: sp(13)
+                    color: app.muted_color
+                TxtAuto:
+                    text: "{}%".format(app.percent)
+                    font_size: sp(13)
+                    bold: True
+                    color: app.accent_color
+            SoftProgress:
+                value: app.progress
+        BoxLayout:
+            id: body
+            orientation: "vertical"
+            padding: 0, dp(18), 0, 0
+        BoxLayout:
+            size_hint_y: None
+            height: dp(52) if app.detail_kind == "checklist" else 0
+            opacity: 1 if app.detail_kind == "checklist" else 0
+            padding: dp(4), dp(18), dp(4), 0
+            Txt:
+                text: app.tr(app.lang, "total_label")
+                font_size: sp(15)
+                bold: True
+                color: app.muted_color
+                pos_hint: {"center_y": .5}
+            TxtAuto:
+                text: app.total_text
+                font_size: sp(22)
+                bold: True
+                color: app.accent_color
+                pos_hint: {"center_y": .5}
+        BoxLayout:
+            size_hint_y: None
+            height: dp(68) if app.detail_kind == "checklist" else 0
+            opacity: 1 if app.detail_kind == "checklist" else 0
+            disabled: app.detail_kind != "checklist"
+            padding: 0, dp(14), 0, 0
+            spacing: dp(8)
+            QuickInput:
+                size_hint_x: .62
+                hint: app.tr(app.lang, "add_product_hint")
+                text: app.new_item_name
+                on_text: app.new_item_name = self.text
+                on_submit: app.add_item()
+            QuickInput:
+                size_hint_x: .38
+                numeric: True
+                hint: app.tr(app.lang, "price_hint")
+                text: app.new_item_price
+                on_text: app.new_item_price = self.text
+                on_submit: app.add_item()
+            AddButton:
+                icon: "plus"
+                on_release: app.add_item()
+
+<AjustesScreen@MDScreen>:
+    name: "ajustes"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(64), dp(24), dp(24)
+        spacing: dp(34)
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: dp(56)
+            spacing: dp(2)
+            Txt:
+                text: app.tr(app.lang, "settings")
+                font_size: sp(30)
+                bold: True
+            Txt:
+                text: app.tr(app.lang, "settings_sub")
+                font_size: sp(14.5)
+                color: app.muted_color
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(8)
+            SettingRow:
+                icon: "moon-waning-crescent"
+                text: app.tr(app.lang, "dark_mode")
+                ToggleSwitch:
+                    active: app.theme_dark
+                    pos_hint: {"center_y": .5}
+                    on_active: app.set_dark_mode(self.active)
+            SettingRow:
+                icon: "bell-outline"
+                text: app.tr(app.lang, "notifications")
+                on_release: app.test_notification()
+                Icon:
+                    icon: "chevron-right"
+                    icon_color: app.muted_color
+                    font_size: sp(20)
+                    pos_hint: {"center_y": .5}
+            SettingRow:
+                icon: "web"
+                text: app.tr(app.lang, "language")
+                on_release: app.open_language_menu(self)
+                TxtAuto:
+                    text: app.tr(app.lang, "language_name")
+                    color: app.muted_color
+                    font_size: sp(15)
+                    pos_hint: {"center_y": .5}
+                Icon:
+                    icon: "chevron-right"
+                    icon_color: app.muted_color
+                    font_size: sp(20)
+                    pos_hint: {"center_y": .5}
+            SettingRow:
+                icon: "broom"
+                text: (app.tr(app.lang, "clear_prices_confirm")
+                       if app.prices_clear_armed
+                       else app.tr(app.lang, "clear_prices"))
+                on_release: app.request_clear_prices()
+                Icon:
+                    icon: "chevron-right"
+                    icon_color: ([0.94, 0.33, 0.31, 1] if app.prices_clear_armed
+                                 else app.muted_color)
+                    font_size: sp(20)
+                    pos_hint: {"center_y": .5}
+            LinkButton:
+                text: app.tr(app.lang, "logout")
+                tint: 1, 0.42, 0.42, 1
+                on_release: app.do_logout()
+                size_hint_y: None
+                height: dp(48)
+                pos_hint: {"center_x": .5}
+        Widget:
+
+# ══════════ Raíz ══════════════
+
+MDBoxLayout:
+    orientation: "vertical"
+    canvas.before:
+        Color:
+            rgba: app.bg_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    MDScreenManager:
+        id: sm
+        LoginScreen:
+        InicioScreen:
+        ListasScreen:
+        NuevaScreen:
+        DetalleScreen:
+        AjustesScreen:
+    BottomNav:
+        opacity: 1 if app.current_user else 0
+        disabled: not app.current_user

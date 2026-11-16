@@ -1091,6 +1091,18 @@
                     icon_color: app.muted_color
                     font_size: sp(20)
                     pos_hint: {"center_y": .5}
+            SettingRow:
+                icon: "broom"
+                text: (app.tr(app.lang, "clear_prices_confirm")
+                       if app.prices_clear_armed
+                       else app.tr(app.lang, "clear_prices"))
+                on_release: app.request_clear_prices()
+                Icon:
+                    icon: "chevron-right"
+                    icon_color: ([0.94, 0.33, 0.31, 1] if app.prices_clear_armed
+                                 else app.muted_color)
+                    font_size: sp(20)
+                    pos_hint: {"center_y": .5}
             LinkButton:
                 text: app.tr(app.lang, "logout")
                 tint: 1, 0.42, 0.42, 1

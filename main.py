@@ -8,7 +8,7 @@ Pantallas:
   3. Listas            ("Mis listas" + una tarjeta por cada lista)
   4. Nueva / Editar    (formulario: nombre, comercio y tipo de lista)
   5. Detalle           (progreso + artículos, o bloc de notas)
-  6. Ajustes           (tema, notificaciones, idioma, cerrar sesión)
+  6. Ajustes           (tema, notificaciones, idioma, precios, cerrar sesión)
 
 Autenticación y cuentas:
   - Los usuarios se guardan en "usuarios.json" (PBKDF2-SHA256 + salt).
@@ -19,6 +19,15 @@ Autenticación y cuentas:
   - Cada cuenta tiene SU PROPIO archivo de listas:
         listas_<usuario>.json
     así las listas de un usuario no se mezclan con las de otro.
+
+Precios globales por comercio:
+  - Cada vez que se agrega un artículo con precio a una lista cuyo comercio
+    está definido, el precio se guarda en "precios_globales.json" bajo la
+    clave normalizada del nombre del artículo:
+        { "items": { "leche": { "Lider": 1500, "Jumbo": 1200 } } }
+  - Si al agregar el artículo otro comercio ya lo tenía MÁS BARATO, se
+    muestra una notificación local con el comercio y precio más baratos.
+  - En Ajustes se puede borrar todo el historial (con confirmación de 2 toques).
 
 Instalación:
     pip install kivy kivymd plyer
@@ -71,7 +80,7 @@ from kivy.utils import escape_markup, get_color_from_hex
 
 from kivymd.app import MDApp
 
-from noti import notify_pending_lists, notify_test
+from noti import notify_cheaper_store, notify_test
 
 Window.softinput_mode = "resize"
 
@@ -141,7 +150,7 @@ TRANSLATIONS = {
         "list_name": "Nombre de la lista",
         "list_name_hint": "Ej: Compra semanal",
         "store": "Comercio",
-        "store_hint": "Ej: Líder",
+        "store_hint": "Ej: Lider",
         "list_type": "Tipo de lista",
         "checklist": "Checklist",
         "checklist_desc": "Marca lo que ya compraste.",
@@ -164,6 +173,8 @@ TRANSLATIONS = {
         "notifications": "Notificaciones",
         "language": "Idioma",
         "language_name": "Español",
+        "clear_prices": "Borrar historial de precios",
+        "clear_prices_confirm": "Toca de nuevo para borrar",
         "nav_home": "Inicio",
         "nav_lists": "Listas",
         "nav_settings": "Ajustes",
@@ -227,6 +238,8 @@ TRANSLATIONS = {
         "notifications": "Notifications",
         "language": "Language",
         "language_name": "English",
+        "clear_prices": "Clear price history",
+        "clear_prices_confirm": "Tap again to clear",
         "nav_home": "Home",
         "nav_lists": "Lists",
         "nav_settings": "Settings",
@@ -287,11 +300,16 @@ def format_price(value):
     return "$" + f"{int(digits):,}".replace(",", ".")
 
 
+def _normalize_item_name(name):
+    return (name or "").strip().lower()
+
+
 # ─────────────────────────────────────────────────────────────────────────
 #  Persistencia
 # ─────────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USERS_FILENAME = "usuarios.json"
+GLOBAL_PRICES_FILENAME = "precios_globales.json"
 LIST_TYPES = ("checklist", "notepad")
 KV_PATH = os.path.join(BASE_DIR, "interfaz.kv")
 
@@ -556,6 +574,7 @@ class ShoppingListApp(MDApp):
     form_store = StringProperty("")
     form_type = StringProperty("checklist")
     delete_armed = BooleanProperty(False)
+    prices_clear_armed = BooleanProperty(False)
 
     # Autenticación
     auth_username = StringProperty("")
@@ -592,6 +611,9 @@ class ShoppingListApp(MDApp):
         Window.bind(on_resize=lambda *_: self._schedule_ui_check())
 
         self.users_file = self._users_path()
+        self.prices_file = os.path.join(self._data_dir(), GLOBAL_PRICES_FILENAME)
+        self.global_prices = self.load_global_prices()
+        self._prices_disarm_event = None
 
         _users = self.load_users()
         _accounts = _users.get("users", {}) if isinstance(_users, dict) else {}
@@ -623,7 +645,6 @@ class ShoppingListApp(MDApp):
         sm.transition = SlideTransition(duration=0.2)
         if self.current_user:
             self.refresh_lists()
-            notify_pending_lists(self.lists, self.lang)
 
     def on_pause(self):
         self.save_now()
@@ -723,6 +744,92 @@ class ShoppingListApp(MDApp):
         except OSError as exc:
             Logger.error(f"Usuarios: no se pudo guardar {self.users_file}: {exc}")
 
+    # ── Persistencia: precios globales por comercio ─────────────────────
+    def load_global_prices(self):
+        try:
+            with open(self.prices_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return {}
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            Logger.error(f"Precios: no se pudo leer {self.prices_file}: {exc}")
+            return {}
+
+        items = data.get("items", {}) if isinstance(data, dict) else {}
+        cleaned = {}
+        for key, stores in items.items():
+            if not isinstance(stores, dict):
+                continue
+            bucket = {}
+            for store, price in stores.items():
+                store = str(store).strip()
+                try:
+                    value = int(price)
+                except (TypeError, ValueError):
+                    continue
+                if store and value > 0:
+                    bucket[store] = value
+            if bucket:
+                cleaned[str(key).strip().lower()] = bucket
+        return cleaned
+
+    def save_global_prices(self):
+        if not self.prices_file:
+            return
+        tmp = self.prices_file + ".tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"version": 1, "items": self.global_prices}, f,
+                          ensure_ascii=False, indent=2)
+            os.replace(tmp, self.prices_file)
+        except OSError as exc:
+            Logger.error(f"Precios: no se pudo guardar {self.prices_file}: {exc}")
+
+    def _record_price(self, name, store, price):
+        """Guarda `price` como el precio del artículo `name` en `store` y
+        devuelve (comercio_más_barato, precio) si OTRO comercio lo tiene más
+        barato; si no, devuelve None."""
+        key = _normalize_item_name(name)
+        if not key or not store or price <= 0:
+            return None
+
+        bucket = self.global_prices.setdefault(key, {})
+        cheaper = None
+        for other_store, other_price in bucket.items():
+            if other_store == store:
+                continue
+            if other_price < price and (cheaper is None or other_price < cheaper[1]):
+                cheaper = (other_store, other_price)
+
+        bucket[store] = price
+        self.save_global_prices()
+        return cheaper
+
+    def clear_global_prices(self):
+        self.global_prices = {}
+        try:
+            if os.path.exists(self.prices_file):
+                os.remove(self.prices_file)
+            Logger.info("Precios: historial global borrado")
+        except OSError as exc:
+            Logger.error(f"Precios: no se pudo borrar {self.prices_file}: {exc}")
+
+    def request_clear_prices(self):
+        if not self.prices_clear_armed:
+            self.prices_clear_armed = True
+            self._prices_disarm_event = Clock.schedule_once(
+                self._disarm_clear_prices, 3
+            )
+            return
+        self._disarm_clear_prices()
+        self.clear_global_prices()
+
+    def _disarm_clear_prices(self, *_):
+        if self._prices_disarm_event is not None:
+            self._prices_disarm_event.cancel()
+            self._prices_disarm_event = None
+        self.prices_clear_armed = False
+
     # ── Login / Registro ────────────────────────────────────────────────
     def toggle_auth_mode(self):
         self.auth_mode = "login" if self.auth_mode == "register" else "register"
@@ -780,7 +887,6 @@ class ShoppingListApp(MDApp):
         self.auth_error = ""
         self.refresh_lists()
         self.go("inicio")
-        notify_pending_lists(self.lists, self.lang)
 
     def do_logout(self):
         data = self.load_users()
@@ -1013,8 +1119,23 @@ class ShoppingListApp(MDApp):
         name = self.new_item_name.strip()
         if lst is None or not name:
             return
-        item = {"title": name, "price": clean_price(self.new_item_price), "done": False}
+
+        price = clean_price(self.new_item_price)
+        store = (lst["store"] or "").strip()
+
+        item = {"title": name, "price": price, "done": False}
         lst["items"].append(item)
+
+        # Historial global de precios + aviso "más barato en otro comercio"
+        if price and store:
+            price_value = int(price)
+            cheaper = self._record_price(name, store, price_value)
+            if cheaper is not None:
+                cheaper_store, cheaper_price = cheaper
+                notify_cheaper_store(
+                    name, store, price_value,
+                    cheaper_store, cheaper_price, self.lang,
+                )
 
         self._items_widgets()[1].add_widget(
             ShoppingItem(title=item["title"], price=item["price"], item=item)
