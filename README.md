@@ -7,7 +7,6 @@
 
    Resultados Encuesta: https://docs.google.com/spreadsheets/d/17e4VL_yqJxEj8KFdAcIP1bdYK6tSLGgyYaiQ9mujS3k/edit?usp=sharing
 
-
 ## Estructura del proyecto Cyro-punch
 
 Este repositorio contiene una aplicación de listas de compras desarrollada con Python y Kivy/KivyMD.
