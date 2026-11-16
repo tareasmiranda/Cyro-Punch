@@ -2,15 +2,13 @@ name: Build Miranda Organizer
 
 on:
   push:
-    branches-ignore:
-      - data
-      - gh-pages
+    branches:
+      - main            # Only build on pushes to main
     tags:
-      - '**'
+      - '**'            # Still build & release on any tag push
   pull_request:
-    branches-ignore:
-      - data
-      - gh-pages
+    branches:
+      - main            # Only run PRs that target main
 
 permissions:
   contents: write
@@ -30,14 +28,24 @@ jobs:
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || \
           yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses >/dev/null 2>&1 || true
 
-      - name: Build with official kivy/buildozer Docker image
+      - name: Clean Buildozer Cache
+        run: |
+          rm -rf ~/.buildozer/android/packages
+          rm -rf main/.buildozer
+
+      - name: Build Python 3.10 Buildozer image
+        run: |
+          git clone --depth 1 https://github.com/BallSpins/kivy-build.git
+          docker build -t buildozer:py310 ./kivy-build
+
+      - name: Build APK with Python 3.10 image
         id: buildozer
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}/main:/home/user/hostcwd" \
-            -v "${{ github.workspace }}/.buildozer_global:/home/user/.buildozer" \
-            -w /home/user/hostcwd \
-            kivy/buildozer:latest \
+            -v "${{ github.workspace }}/main:/app" \
+            -v "${{ github.workspace }}/.buildozer_global:/root/.buildozer" \
+            -w /app \
+            buildozer:py310 \
             android debug
 
       - name: Find APK
