@@ -11,22 +11,6 @@
 
 Este repositorio contiene una aplicación de listas de compras desarrollada con Python y Kivy/KivyMD.
 
-### Árbol del proyecto
-
-```
-Cyro-punch/
-├── .gitignore
-├── README.md
-├── main.py
-├── interfaz.kv
-├── listas.json
-├── requirements.txt
-├── venv/
-├── docs/
-│   ├── AI-WORKFLOW.md
-│   └── uso-de-IA.md
-└── .git/
-```
 
 
 ## Descripción de los archivos principales
