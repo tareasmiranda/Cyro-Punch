@@ -14,12 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: .               # buildozer.spec is in the repo root
-          buildozer_version: stable
+	- name: Build with Buildozer
+	  uses: guysoft/buildozer-action@v1
+	  id: buildozer
+	  with:
+	    workdir: .               # buildozer.spec is in the repo
+	  buildozer_version: stable
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
