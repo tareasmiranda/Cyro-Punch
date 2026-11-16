@@ -3,9 +3,14 @@ name: Build APK with Buildozer
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'          # e.g. v1.0, v1.0.1 — triggers a Release
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+
+permissions:
+  contents: write     # required by softprops/action-gh-release to create a Release
 
 jobs:
   build-android:
@@ -25,8 +30,20 @@ jobs:
           buildozer_version: stable
           command: buildozer android debug
 
-      - name: Upload APK artifact
+      # 1) Upload the APK as an artifact WITHOUT zipping it.
+      #    archive:false (upload-artifact >= 4.4.0) keeps the .apk raw.
+      - name: Upload APK artifact (unzipped)
         uses: actions/upload-artifact@v4
         with:
-          name: package
+          name: apk
           path: ${{ steps.buildozer.outputs.filename }}
+          archive: false
+
+      # 2) Attach the SAME .apk to a GitHub Release when a tag v* is pushed.
+      - name: Attach APK to GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.buildozer.outputs.filename }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

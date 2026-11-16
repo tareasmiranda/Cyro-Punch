@@ -16,7 +16,7 @@ fullscreen = 0
 android.permissions = POST_NOTIFICATIONS
 
 # Recommended API/NDK for current Buildozer versions
-android.api = 34
+android.api = 33
 android.minapi = 24
 android.ndk = 25b
 android.archs = arm64-v8a, armeabi-v7a
