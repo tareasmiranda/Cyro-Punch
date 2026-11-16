@@ -42,7 +42,7 @@ import re
 import secrets
 import shutil
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from kivy.config import Config
 from kivy.utils import platform
@@ -341,6 +341,7 @@ def normalize_list(raw):
                         "title": str(it["title"]),
                         "price": clean_price(it.get("price", "")),
                         "done": bool(it.get("done", False)),
+                        "done_at": str(it.get("done_at") or ""),
                     }
                 )
     kind = raw.get("type")
@@ -515,6 +516,7 @@ class ShoppingItem(Pressable, Card):
         self.done = not self.done
         if self.item is not None:
             self.item["done"] = self.done
+            self.item["done_at"] = datetime.now().isoformat(timespec="seconds") if self.done else ""
         app = MDApp.get_running_app()
         if app is not None:
             app.items_changed()
@@ -557,6 +559,14 @@ class ShoppingListApp(MDApp):
 
     lists_count = NumericProperty(0)
 
+    # Resumen de Analytics
+    analytics_month_spend = StringProperty("$0")
+    analytics_completed = StringProperty("0")
+    analytics_top_product = StringProperty("Sin datos")
+    analytics_top_store = StringProperty("Sin datos")
+    analytics_estimated_savings = StringProperty("$0")
+    analytics_summary = StringProperty("Agrega y marca productos como comprados para generar estadísticas.")
+
     detail_name = StringProperty("")
     detail_meta = StringProperty("")
     detail_kind = StringProperty("checklist")
@@ -582,6 +592,7 @@ class ShoppingListApp(MDApp):
     auth_error = StringProperty("")
     auth_mode = StringProperty("login")   # "login" o "register"
     current_user = StringProperty("")
+    is_admin = BooleanProperty(False)
     has_users = BooleanProperty(False)
 
     # Tema
@@ -598,7 +609,7 @@ class ShoppingListApp(MDApp):
     track_color = ColorProperty(get_color_from_hex(PALETTE_DARK["TRACK"]))
     check_border_color = ColorProperty(get_color_from_hex(PALETTE_DARK["CHECK_BORDER"]))
 
-    SCREEN_ORDER = ("inicio", "listas", "detalle", "ajustes")
+    SCREEN_ORDER = ("inicio", "listas", "analytics", "detalle", "ajustes")
 
     # ── Ciclo de vida ───────────────────────────────────────────────────
     def build(self):
@@ -617,6 +628,16 @@ class ShoppingListApp(MDApp):
 
         _users = self.load_users()
         _accounts = _users.get("users", {}) if isinstance(_users, dict) else {}
+        # Migración: si ya existen cuentas pero ninguna tiene rol admin,
+        # la primera cuenta registrada se convierte en administradora.
+        if isinstance(_accounts, dict) and _accounts:
+            if not any(isinstance(v, dict) and v.get("role") == "admin" for v in _accounts.values()):
+                first_account = next(iter(_accounts))
+                if not isinstance(_accounts[first_account], dict):
+                    _accounts[first_account] = {}
+                _accounts[first_account]["role"] = "admin"
+                _users["users"] = _accounts
+                self.save_users(_users)
         self.has_users = bool(_accounts)
         saved = _users.get("current_user", "") if isinstance(_users, dict) else ""
 
@@ -628,10 +649,12 @@ class ShoppingListApp(MDApp):
 
         if saved and saved in _accounts:
             self.current_user = saved
+            self.is_admin = bool(_accounts.get(saved, {}).get("role") == "admin")
             self._load_user_data(migrate_legacy=True)
             self.auth_mode = "login"
         else:
             self.current_user = ""
+            self.is_admin = False
             self.auth_mode = "login" if self.has_users else "register"
 
         root = Builder.load_file(KV_PATH)
@@ -854,15 +877,19 @@ class ShoppingListApp(MDApp):
                 self.auth_error = self.tr(self.lang, "auth_user_exists")
                 return
             salt = secrets.token_hex(16)
+            # La primera cuenta es administradora; las siguientes son usuarios normales.
+            has_admin = any(isinstance(v, dict) and v.get("role") == "admin" for v in accounts.values())
             accounts[username] = {
                 "salt": salt,
                 "hash": _hash_password(password, salt),
+                "role": "user" if has_admin else "admin",
             }
             data["users"] = accounts
             data["current_user"] = username
             self.save_users(data)
             self.has_users = True
             self.current_user = username
+            self.is_admin = accounts[username].get("role") == "admin"
             self._load_user_data()
             self._enter_app()
             return
@@ -879,6 +906,7 @@ class ShoppingListApp(MDApp):
         data["current_user"] = username
         self.save_users(data)
         self.current_user = username
+        self.is_admin = record.get("role") == "admin"
         self._load_user_data()
         self._enter_app()
 
@@ -893,6 +921,7 @@ class ShoppingListApp(MDApp):
         data.pop("current_user", None)
         self.save_users(data)
         self.current_user = ""
+        self.is_admin = False
         self.data_file = None
         self.lists = []
         self.current_id = None
@@ -921,6 +950,9 @@ class ShoppingListApp(MDApp):
 
     # ── Navegación ──────────────────────────────────────────────────────
     def go(self, screen_name):
+        # La autorización se valida aquí, no solo ocultando el botón.
+        if screen_name == "analytics" and not self.is_admin:
+            return
         sm = self.root.ids.sm
         if sm.current == screen_name:
             return
@@ -940,8 +972,10 @@ class ShoppingListApp(MDApp):
         self._schedule_ui_check()
         if screen_name in ("detalle", "nueva"):
             self.current_tab = "listas"
-        elif screen_name in ("inicio", "listas", "ajustes"):
+        elif screen_name in ("inicio", "listas", "analytics", "ajustes"):
             self.current_tab = screen_name
+        if screen_name == "analytics":
+            self.refresh_analytics()
 
     def _on_keyboard(self, _window, key, *_args):
         if key != 27:
@@ -1309,6 +1343,86 @@ class ShoppingListApp(MDApp):
         ) or "$0"
         self.progress = done / total if total else 0
         self.percent = int(round(self.progress * 100))
+
+    # ── Analytics ───────────────────────────────────────────────────────
+    def refresh_analytics(self):
+        """Calcula indicadores a partir de los artículos marcados como comprados."""
+        month_key = date.today().strftime("%Y-%m")
+        completed = []
+        month_spend = 0
+        product_counts = {}
+        store_counts = {}
+        estimated_savings = 0
+
+        for lst in self.lists:
+            store = (lst.get("store") or "").strip() or "Sin comercio"
+            for item in lst.get("items", []):
+                if not item.get("done"):
+                    continue
+                completed.append(item)
+                name = str(item.get("title") or "Producto").strip()
+                key = _normalize_item_name(name)
+                product_counts[name] = product_counts.get(name, 0) + 1
+                store_counts[store] = store_counts.get(store, 0) + 1
+                try:
+                    price = int(clean_price(item.get("price", "")) or 0)
+                except ValueError:
+                    price = 0
+                done_at = str(item.get("done_at") or "")
+                if done_at[:7] == month_key:
+                    month_spend += price
+                # Ahorro potencial: diferencia frente al precio más bajo conocido
+                # en otro comercio. No representa un ahorro ya realizado.
+                known = self.global_prices.get(key, {})
+                other_prices = [int(v) for k, v in known.items() if k != store and int(v) > 0]
+                if price > 0 and other_prices and min(other_prices) < price:
+                    estimated_savings += price - min(other_prices)
+
+        self.analytics_month_spend = format_price(month_spend) or "$0"
+        self.analytics_completed = str(len(completed))
+        self.analytics_top_product = max(product_counts, key=product_counts.get) if product_counts else "Sin datos"
+        self.analytics_top_store = max(store_counts, key=store_counts.get) if store_counts else "Sin datos"
+        self.analytics_estimated_savings = format_price(estimated_savings) or "$0"
+        legacy = sum(1 for lst in self.lists for it in lst.get("items", []) if it.get("done") and not it.get("done_at"))
+        if not completed:
+            self.analytics_summary = "Aún no hay artículos marcados como comprados."
+        elif legacy:
+            self.analytics_summary = f"{legacy} compra(s) antigua(s) no tienen fecha; el gasto mensual considera solo compras fechadas."
+        else:
+            self.analytics_summary = "Gastos del mes calculados con la fecha en que marcaste cada artículo como comprado."
+
+    def get_monthly_expenses(self):
+        """Devuelve el gasto de cada mes usando compras con fecha registrada."""
+        totals = {}
+        for lst in self.lists:
+            for item in lst.get("items", []):
+                stamp = str(item.get("done_at") or "")
+                if item.get("done") and len(stamp) >= 7:
+                    month = stamp[:7]
+                    totals[month] = totals.get(month, 0) + int(clean_price(item.get("price", "")) or 0)
+        return dict(sorted(totals.items()))
+
+    def get_frequent_products(self, limit=5):
+        """Entrega los productos más comprados y su cantidad."""
+        counts = {}
+        for lst in self.lists:
+            for item in lst.get("items", []):
+                if item.get("done"):
+                    name = str(item.get("title") or "").strip()
+                    if name:
+                        counts[name] = counts.get(name, 0) + 1
+        return sorted(counts.items(), key=lambda pair: pair[1], reverse=True)[:limit]
+
+    def get_frequent_stores(self, limit=5):
+        """Entrega los comercios con más artículos comprados en sus listas."""
+        counts = {}
+        for lst in self.lists:
+            store = (lst.get("store") or "").strip()
+            if store:
+                count = sum(1 for item in lst.get("items", []) if item.get("done"))
+                if count:
+                    counts[store] = counts.get(store, 0) + count
+        return sorted(counts.items(), key=lambda pair: pair[1], reverse=True)[:limit]
 
     # ── Tema ────────────────────────────────────────────────────────────
     def set_dark_mode(self, active):
