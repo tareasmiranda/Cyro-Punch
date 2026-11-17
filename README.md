@@ -29,7 +29,6 @@ En otras palabras, este archivo concentra la parte funcional y del comportamient
 
 ### `interfaz.kv`
 Es el archivo de interfaz gráfica de Kivy.
-
 Aquí se especifican:
 - lal proyecto mientras la app está siendo usada.
 
