@@ -1,10 +1,10 @@
 [app]
 
 # (str) Title of your application
-title = Lista de compras
+title = Miranda Organizer
 
 # (str) Package name
-package.name = listacompras
+package.name = tmorganizer
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.tareasmiranda
@@ -26,7 +26,7 @@ source.exclude_dirs = tests, bin, venv, .venv, .git, __pycache__
 source.exclude_patterns = usuarios.json, precios_globales.json, listas_*.json, listas.json
 
 # (str) Application versioning (method 1)
-version = 0.1.0
+version = 0.1.1
 
 # (list) Application requirements
 # Notas:
@@ -87,7 +87,7 @@ android.entrypoint = org.kivy.android.PythonActivity
 android.archs = arm64-v8a, armeabi-v7a
 
 # (bool) enables Android auto backup feature (Android API >=23)
-android.allow_backup = True
+android.allow_backup = False
 
 # (str) The format used to package the app for release mode (aab or apk or aar).
 android.release_artifact = apk
@@ -111,4 +111,4 @@ p4a.bootstrap = sdl2
 log_level = 2
 
 # (int) Display warning if buildozer is run as root (0 = False, 1 = True)
-warn_on_root = 1
+warn_on_root = 0
