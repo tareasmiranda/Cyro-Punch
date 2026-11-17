@@ -22,11 +22,13 @@
 
 <Icon@MDIcon>:
     theme_font_size: "Custom"
+    theme_icon_color: "Custom"
     font_size: sp(24)
     icon_color: app.text_color
 
 <Glyph@MDIcon>:
     theme_font_size: "Custom"
+    theme_icon_color: "Custom"
     font_size: sp(24)
 
 <PlainLabel@Label>:
@@ -38,6 +40,7 @@
 
 <PillIcon@MDIcon>:
     theme_font_size: "Custom"
+    theme_icon_color: "Custom"
     font_size: sp(20)
     icon_color: app.accent_fg_color
 
@@ -616,6 +619,8 @@
 
 <LoginScreen@MDScreen>:
     name: "login"
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(48), dp(24), dp(32)
@@ -726,6 +731,8 @@
 
 <InicioScreen@MDScreen>:
     name: "inicio"
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(64), dp(24), dp(40)
@@ -753,6 +760,8 @@
 
 <ListasScreen@MDScreen>:
     name: "listas"
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(64), dp(24), dp(24)
@@ -789,6 +798,8 @@
 
 <NuevaScreen@MDScreen>:
     name: "nueva"
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(56), dp(24), dp(12)
@@ -938,6 +949,8 @@
 
 <DetalleScreen@MDScreen>:
     name: "detalle"
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(56), dp(24), dp(24)
@@ -1039,6 +1052,8 @@
 
 <AjustesScreen@MDScreen>:
     name: "ajustes"
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(64), dp(24), dp(24)
@@ -1093,7 +1108,6 @@
                     pos_hint: {"center_y": .5}
             SettingRow:
                 icon: "broom"
-                icon: "broom"
                 text: app.tr(app.lang, "clear_prices_confirm") if app.prices_clear_armed else app.tr(app.lang, "clear_prices")
                 on_release: app.request_clear_prices()
                 Icon:
@@ -1114,12 +1128,8 @@
 
 MDBoxLayout:
     orientation: "vertical"
-    canvas.before:
-        Color:
-            rgba: app.bg_color
-        Rectangle:
-            pos: self.pos
-            size: self.size
+    theme_bg_color: "Custom"
+    md_bg_color: app.bg_color
     MDScreenManager:
         id: sm
         LoginScreen:
