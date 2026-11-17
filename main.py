@@ -29,17 +29,10 @@ Precios globales por comercio:
     muestra una notificación local con el comercio y precio más baratos.
   - En Ajustes se puede borrar todo el historial (con confirmación de 2 toques).
 
-Versiones objetivo:
-    Python 3.13 · Kivy 2.3.1 · KivyMD 2.x · Buildozer 1.6.0
-
-Instalación (escritorio):
-    pip install "kivy==2.3.1" plyer pillow materialyoucolor asynckivy asyncgui exceptiongroup
-    pip install https://github.com/kivymd/KivyMD/archive/master.zip
-    Windows:  pip install winotify
+Instalación:
+    pip install kivy kivymd plyer
+    Windows:  pip install winotify   (o win10toast)
     Linux:    sudo apt install libnotify-bin
-
-Android: ver el bloque `requirements` / permisos del buildozer.spec que
-acompaña a estos archivos.
 """
 
 import hashlib
@@ -48,7 +41,6 @@ import os
 import re
 import secrets
 import shutil
-import sys
 import uuid
 from datetime import date, datetime
 
@@ -86,15 +78,9 @@ from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.widget import Widget
 from kivy.utils import escape_markup, get_color_from_hex
 
-import kivy
-import kivymd
 from kivymd.app import MDApp
 
-from noti import (
-    notify_cheaper_store,
-    notify_test,
-    request_notification_permission,
-)
+from noti import notify_cheaper_store, notify_test
 
 Window.softinput_mode = "resize"
 
@@ -628,10 +614,6 @@ class ShoppingListApp(MDApp):
     # ── Ciclo de vida ───────────────────────────────────────────────────
     def build(self):
         self.title = "Lista de compras"
-        Logger.info(
-            f"Listas: Python {sys.version.split()[0]} · "
-            f"Kivy {kivy.__version__} · KivyMD {kivymd.__version__}"
-        )
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Lime"
         self.font_name = register_fonts()
@@ -684,8 +666,6 @@ class ShoppingListApp(MDApp):
     def on_start(self):
         sm = self.root.ids.sm
         sm.transition = SlideTransition(duration=0.2)
-        # Android 13+: el permiso de notificaciones se pide en tiempo de ejecución.
-        request_notification_permission()
         if self.current_user:
             self.refresh_lists()
 
