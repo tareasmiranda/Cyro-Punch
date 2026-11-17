@@ -22,13 +22,11 @@
 
 <Icon@MDIcon>:
     theme_font_size: "Custom"
-    theme_icon_color: "Custom"
     font_size: sp(24)
     icon_color: app.text_color
 
 <Glyph@MDIcon>:
     theme_font_size: "Custom"
-    theme_icon_color: "Custom"
     font_size: sp(24)
 
 <PlainLabel@Label>:
@@ -40,7 +38,6 @@
 
 <PillIcon@MDIcon>:
     theme_font_size: "Custom"
-    theme_icon_color: "Custom"
     font_size: sp(20)
     icon_color: app.accent_fg_color
 
@@ -609,6 +606,14 @@
         active: app.current_tab == self.key
         on_release: app.go(self.key)
     NavItem:
+        key: "analytics"
+        icon: "chart-box-outline"
+        text: "Analytics"
+        active: app.current_tab == self.key
+        opacity: 1 if app.is_admin else 0
+        disabled: not app.is_admin
+        on_release: app.go(self.key)
+    NavItem:
         key: "ajustes"
         icon: "tune-variant"
         text: app.tr(app.lang, "nav_settings")
@@ -619,8 +624,6 @@
 
 <LoginScreen@MDScreen>:
     name: "login"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(48), dp(24), dp(32)
@@ -731,8 +734,6 @@
 
 <InicioScreen@MDScreen>:
     name: "inicio"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(64), dp(24), dp(40)
@@ -760,8 +761,6 @@
 
 <ListasScreen@MDScreen>:
     name: "listas"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(64), dp(24), dp(24)
@@ -796,10 +795,116 @@
                 height: self.minimum_height
                 spacing: dp(14)
 
+<AnalyticsScreen@MDScreen>:
+    name: "analytics"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(54), dp(24), dp(24)
+        spacing: dp(16)
+        Txt:
+            text: "Analytics"
+            font_size: sp(30)
+            bold: True
+            size_hint_y: None
+            height: dp(42)
+        Txt:
+            text: "Resumen de tus compras"
+            font_size: sp(15)
+            color: app.muted_color
+            size_hint_y: None
+            height: dp(24)
+        ScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(12)
+                padding: 0, 0, 0, dp(12)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Gasto del mes actual"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_month_spend
+                        color: app.accent_color
+                        bold: True
+                        font_size: sp(25)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Artículos comprados"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_completed
+                        bold: True
+                        font_size: sp(25)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Producto más comprado"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_top_product
+                        bold: True
+                        font_size: sp(20)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Comercio más frecuente"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_top_store
+                        bold: True
+                        font_size: sp(20)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Ahorro potencial estimado"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_estimated_savings
+                        color: app.accent_color
+                        bold: True
+                        font_size: sp(25)
+                Txt:
+                    text: app.analytics_summary
+                    color: app.muted_color
+                    font_size: sp(12.5)
+                    size_hint_y: None
+                    height: self.texture_size[1] + dp(12)
+                    text_size: self.width, None
+                    halign: "left"
+
 <NuevaScreen@MDScreen>:
     name: "nueva"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(56), dp(24), dp(12)
@@ -949,8 +1054,6 @@
 
 <DetalleScreen@MDScreen>:
     name: "detalle"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(56), dp(24), dp(24)
@@ -1052,8 +1155,6 @@
 
 <AjustesScreen@MDScreen>:
     name: "ajustes"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(64), dp(24), dp(24)
@@ -1108,6 +1209,7 @@
                     pos_hint: {"center_y": .5}
             SettingRow:
                 icon: "broom"
+                icon: "broom"
                 text: app.tr(app.lang, "clear_prices_confirm") if app.prices_clear_armed else app.tr(app.lang, "clear_prices")
                 on_release: app.request_clear_prices()
                 Icon:
@@ -1128,13 +1230,18 @@
 
 MDBoxLayout:
     orientation: "vertical"
-    theme_bg_color: "Custom"
-    md_bg_color: app.bg_color
+    canvas.before:
+        Color:
+            rgba: app.bg_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
     MDScreenManager:
         id: sm
         LoginScreen:
         InicioScreen:
         ListasScreen:
+        AnalyticsScreen:
         NuevaScreen:
         DetalleScreen:
         AjustesScreen:
