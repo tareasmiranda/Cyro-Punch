@@ -609,6 +609,14 @@
         active: app.current_tab == self.key
         on_release: app.go(self.key)
     NavItem:
+        key: "analytics"
+        icon: "chart-box-outline"
+        text: "Analytics"
+        active: app.current_tab == self.key
+        opacity: 1 if app.is_admin else 0
+        disabled: not app.is_admin
+        on_release: app.go(self.key)
+    NavItem:
         key: "ajustes"
         icon: "tune-variant"
         text: app.tr(app.lang, "nav_settings")
@@ -795,6 +803,114 @@
                 size_hint_y: None
                 height: self.minimum_height
                 spacing: dp(14)
+
+<AnalyticsScreen@MDScreen>:
+    name: "analytics"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(54), dp(24), dp(24)
+        spacing: dp(16)
+        Txt:
+            text: "Analytics"
+            font_size: sp(30)
+            bold: True
+            size_hint_y: None
+            height: dp(42)
+        Txt:
+            text: "Resumen de tus compras"
+            font_size: sp(15)
+            color: app.muted_color
+            size_hint_y: None
+            height: dp(24)
+        ScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(12)
+                padding: 0, 0, 0, dp(12)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Gasto del mes actual"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_month_spend
+                        color: app.accent_color
+                        bold: True
+                        font_size: sp(25)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Artículos comprados"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_completed
+                        bold: True
+                        font_size: sp(25)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Producto más comprado"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_top_product
+                        bold: True
+                        font_size: sp(20)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Comercio más frecuente"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_top_store
+                        bold: True
+                        font_size: sp(20)
+                Card:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(92)
+                    padding: dp(16)
+                    fill_color: app.surface_color
+                    Txt:
+                        text: "Ahorro potencial estimado"
+                        color: app.muted_color
+                        font_size: sp(13)
+                    Txt:
+                        text: app.analytics_estimated_savings
+                        color: app.accent_color
+                        bold: True
+                        font_size: sp(25)
+                Txt:
+                    text: app.analytics_summary
+                    color: app.muted_color
+                    font_size: sp(12.5)
+                    size_hint_y: None
+                    height: self.texture_size[1] + dp(12)
+                    text_size: self.width, None
+                    halign: "left"
 
 <NuevaScreen@MDScreen>:
     name: "nueva"
@@ -1135,6 +1251,7 @@ MDBoxLayout:
         LoginScreen:
         InicioScreen:
         ListasScreen:
+        AnalyticsScreen:
         NuevaScreen:
         DetalleScreen:
         AjustesScreen:
