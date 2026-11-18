@@ -495,6 +495,17 @@
             color: app.muted_color if root.done else app.text_color
             shorten: True
             shorten_from: "right"
+    Label:
+        text: root.cheaper_text
+        font_name: app.font_name
+        font_size: "11sp"
+        color: app.accent_color
+        opacity: 1 if root.cheaper_text else 0
+        size_hint_y: None
+        height: self.texture_size[1] if root.cheaper_text else 0
+        text_size: self.width, None
+        halign: "left"
+        shorten: True
     TxtAuto:
         text: root.price_text
         font_size: sp(15)

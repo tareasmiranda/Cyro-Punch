@@ -37,13 +37,13 @@ version = 0.1.1
 #    defecto. Para 3.13 anade al inicio: hostpython3==3.13.9,python3==3.13.9,
 #    (cualquier 3.13.x que exista en python.org) y prueba que compile.
 #  - Tras cambiar requirements ejecuta: buildozer android clean
-requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, android
+requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, android, pyjnius
 # (str) Custom source folders for requirements
 # (list) Garden requirements
 #garden_requirements =
 
 # (str) Presplash of the application
-#presplash.filename = %(source.dir)s/data/presplash.png
+presplash.filename = %(source.dir)s/assets/splash.png
 
 # (str) Icon of the application
 icon.filename = %(source.dir)s/assets/icon.png
@@ -64,6 +64,8 @@ fullscreen = 1
 # (list) Permissions
 # POST_NOTIFICATIONS es obligatorio en Android 13+ para mostrar avisos.
 android.permissions = POST_NOTIFICATIONS
+android.gradle_dependencies = androidx.core:core:1.6.0
+android.enable_androidx = True
 
 # (int) Target Android API, should be as high as possible.
 android.api = 36

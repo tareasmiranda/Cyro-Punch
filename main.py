@@ -26,11 +26,15 @@ Precios globales por comercio:
     clave normalizada del nombre del artículo:
         { "items": { "leche": { "Lider": 1500, "Jumbo": 1200 } } }
   - Si al agregar el artículo otro comercio ya lo tenía MÁS BARATO, se
-    muestra una notificación local con el comercio y precio más baratos.
+    muestra una notificación local con el comercio y precio más baratos,
+    y la fila muestra un aviso "Más barato en X: $Y".
+  - En "Mis listas", cada tarjeta añade "· ahorras hasta $Z" cuando hay
+    artículos pendientes que se podrían comprar más baratos en otro
+    comercio conocido.
   - En Ajustes se puede borrar todo el historial (con confirmación de 2 toques).
 
 Instalación:
-    pip install kivy kivymd plyer
+    pip install kivy kivymd plyer pyjnius
     Windows:  pip install winotify   (o win10toast)
     Linux:    sudo apt install libnotify-bin
 """
@@ -504,6 +508,7 @@ class ShoppingItem(Pressable, Card):
     title = StringProperty()
     price = StringProperty()
     price_text = StringProperty()
+    cheaper_text = StringProperty("")
     done = BooleanProperty(False)
     title_markup = StringProperty()
     item = ObjectProperty(None, allownone=True)
@@ -530,6 +535,18 @@ class ShoppingItem(Pressable, Card):
         app = MDApp.get_running_app()
         if app is not None:
             app.items_changed()
+            self._refresh_cheaper_hint(app)
+
+    def _refresh_cheaper_hint(self, app):
+        if self.done or self.item is None:
+            self.cheaper_text = ""
+            return
+        lst = app.current_list()
+        if lst is None:
+            self.cheaper_text = ""
+            return
+        price = int(clean_price(self.price) or 0)
+        self.cheaper_text = app._cheaper_text(self.title, price, lst["store"])
 
     def _sync_title(self):
         text = escape_markup(self.title)
@@ -1012,6 +1029,52 @@ class ShoppingListApp(MDApp):
         self.save_global_prices()
         return cheaper
 
+    def _cheaper_for(self, item_name, current_price, current_store):
+        """Devuelve (comercio, precio) del comercio más barato (distinto al
+        actual) para `item_name`, o None si no hay uno más barato."""
+        if not current_store:
+            return None
+        key = _normalize_item_name(item_name)
+        if not key or current_price <= 0:
+            return None
+        known = self.global_prices.get(key, {})
+        cheaper = None
+        for store, price in known.items():
+            if store == current_store:
+                continue
+            try:
+                value = int(price)
+            except (TypeError, ValueError):
+                continue
+            if value > 0 and value < current_price:
+                if cheaper is None or value < cheaper[1]:
+                    cheaper = (store, value)
+        return cheaper
+
+    def _cheaper_text(self, item_name, current_price, current_store):
+        cheaper = self._cheaper_for(item_name, current_price, current_store)
+        if cheaper is None:
+            return ""
+        store, price = cheaper
+        if self.lang == "en":
+            return f"Cheaper at {store}: {format_price(price)}"
+        return f"Más barato en {store}: {format_price(price)}"
+
+    def _list_savings(self, lst):
+        """Ahorro potencial sumando, por artículo pendiente, la diferencia con
+        el comercio más barato conocido. Devuelve 0 si no hay ahorro."""
+        total = 0
+        for it in lst["items"]:
+            if it["done"]:
+                continue
+            price = int(clean_price(it["price"]) or 0)
+            if price <= 0:
+                continue
+            cheaper = self._cheaper_for(it["title"], price, lst["store"])
+            if cheaper is not None:
+                total += price - cheaper[1]
+        return total
+
     def clear_global_prices(self):
         self.global_prices = {}
         try:
@@ -1272,7 +1335,14 @@ class ShoppingListApp(MDApp):
             when = self.tr(self.lang, "updated_on").format(
                 format_date(lst["updated"], self.lang, weekday=False)
             )
-        return f"{lst['store']} · {when}" if lst["store"] else when
+        base = f"{lst['store']} · {when}" if lst["store"] else when
+        savings = self._list_savings(lst)
+        if savings > 0:
+            if self.lang == "en":
+                base = f"{base} · save up to {format_price(savings)}"
+            else:
+                base = f"{base} · ahorras hasta {format_price(savings)}"
+        return base
 
     def refresh_lists(self):
         box = self.root.ids.sm.get_screen("listas").ids.lists_box
@@ -1316,9 +1386,14 @@ class ShoppingListApp(MDApp):
         scroll, box = self._items_widgets()
         box.clear_widgets()
         for it in lst["items"]:
+            price_val = int(clean_price(it["price"]) or 0)
+            cheaper_text = ""
+            if not it["done"] and price_val > 0:
+                cheaper_text = self._cheaper_text(it["title"], price_val, lst["store"])
             box.add_widget(
                 ShoppingItem(
-                    title=it["title"], price=it["price"], done=it["done"], item=it
+                    title=it["title"], price=it["price"], done=it["done"],
+                    cheaper_text=cheaper_text, item=it,
                 )
             )
         self._show_body(lst["type"])
@@ -1339,19 +1414,26 @@ class ShoppingListApp(MDApp):
         item = {"title": name, "price": price, "done": False}
         lst["items"].append(item)
 
-        # Historial global de precios + aviso "más barato en otro comercio"
+        cheaper_text = ""
         if price and store:
             price_value = int(price)
             cheaper = self._record_price(name, store, price_value)
             if cheaper is not None:
                 cheaper_store, cheaper_price = cheaper
+                if self.lang == "en":
+                    cheaper_text = f"Cheaper at {cheaper_store}: {format_price(cheaper_price)}"
+                else:
+                    cheaper_text = f"Más barato en {cheaper_store}: {format_price(cheaper_price)}"
                 notify_cheaper_store(
                     name, store, price_value,
                     cheaper_store, cheaper_price, self.lang,
                 )
 
         self._items_widgets()[1].add_widget(
-            ShoppingItem(title=item["title"], price=item["price"], item=item)
+            ShoppingItem(
+                title=item["title"], price=item["price"],
+                cheaper_text=cheaper_text, item=item,
+            )
         )
         self.new_item_name = ""
         self.new_item_price = ""
@@ -1636,6 +1718,15 @@ class ShoppingListApp(MDApp):
         lst = self.current_list()
         if lst is not None:
             self._refresh_detail_meta(lst)
+            # Recalcula los avisos de "más barato en..." con el idioma nuevo,
+            # conservando scroll y lo que el usuario estuviera escribiendo.
+            if (self.root.ids.sm.current == "detalle"
+                    and lst["type"] == "checklist"
+                    and not self.new_item_name and not self.new_item_price):
+                scroll, _box = self._items_widgets()
+                saved = scroll.scroll_y
+                self._load_detail(lst, check=False)
+                scroll.scroll_y = saved
 
     def open_language_menu(self, anchor):
         LanguageDropDown().open(anchor)
