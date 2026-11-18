@@ -83,7 +83,7 @@ from kivymd.app import MDApp
 
 from noti import notify_cheaper_store, notify_test
 
-Window.softinput_mode = "resize"
+Window.softinput_mode = "pan"  # Mueve la pantalla para mantener visible el campo enfocado al abrir el teclado.
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Paletas de color
