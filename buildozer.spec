@@ -37,8 +37,7 @@ version = 0.1.1
 #    defecto. Para 3.13 anade al inicio: hostpython3==3.13.9,python3==3.13.9,
 #    (cualquier 3.13.x que exista en python.org) y prueba que compile.
 #  - Tras cambiar requirements ejecuta: buildozer android clean
-
-requirements = python3, kivy==2.3.0, kivymd==1.1.1, pillow
+requirements = python3, kivy, https://github.com/kivymd/KivyMD/archive/master.zip, materialyoucolor==3.0.3, materialshapes, pycairo, pillow, exceptiongroup, asyncgui, asynckivy, android
 # (str) Custom source folders for requirements
 # (list) Garden requirements
 #garden_requirements =
