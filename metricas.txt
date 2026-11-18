@@ -1,14 +1,15 @@
 RESUMEN DE USO DE LA APLICACIÓN
 ================================
-Sesiones iniciadas: 1
-Última sesión: 2026-11-17T22:35:58
+Sesiones iniciadas: 2
+Última sesión: 2026-11-17T22:51:52
 
 DETALLE DE PANTALLAS
 --------------------
-- Ajustes [ajustes] | visitas=2; tiempo=2 s; tiempo_segundos=2.08
-- Inicio [inicio] | visitas=2; tiempo=2 s; tiempo_segundos=2.97
-- Inicio de sesión [login] | visitas=2; tiempo=21 s; tiempo_segundos=21.38
-- Resumen [resumen] | visitas=2; tiempo=1 s; tiempo_segundos=1.70
+- Ajustes [ajustes] [Ajustes [ajustes]] | visitas=2; tiempo=2 s; tiempo_segundos=2.08
+- Inicio [inicio] [Inicio [inicio]] | visitas=2; tiempo=2 s; tiempo_segundos=2.97
+- Inicio de sesión [login] [Inicio de sesión [login]] | visitas=2; tiempo=21 s; tiempo_segundos=21.38
+- Resumen [resumen] [Resumen [resumen]] | visitas=2; tiempo=1 s; tiempo_segundos=1.70
+- Inicio de sesión [login] | visitas=1; tiempo=7 s; tiempo_segundos=7.52
 
 PULSACIONES DE BOTONES
 ----------------------
