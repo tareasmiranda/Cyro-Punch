@@ -619,7 +619,7 @@
     NavItem:
         key: "resumen"
         icon: "chart-box-outline"
-        text: "Resumen"
+        text: app.tr(app.lang, "nav_summary")
         active: app.current_tab == self.key
         on_release: app.go(self.key)
     NavItem:
@@ -811,13 +811,13 @@
         padding: dp(24), dp(54), dp(24), dp(24)
         spacing: dp(16)
         Txt:
-            text: "Resumen"
+            text: app.tr(app.lang, "summary_title")
             font_size: sp(30)
             bold: True
             size_hint_y: None
             height: dp(42)
         Txt:
-            text: "Resumen de tus compras"
+            text: app.tr(app.lang, "summary_sub")
             font_size: sp(15)
             color: app.muted_color
             size_hint_y: None
@@ -838,7 +838,7 @@
                     padding: dp(16)
                     fill_color: app.surface_color
                     Txt:
-                        text: "Gasto del mes actual"
+                        text: app.tr(app.lang, "month_spend")
                         color: app.muted_color
                         font_size: sp(13)
                     Txt:
@@ -853,7 +853,7 @@
                     padding: dp(16)
                     fill_color: app.surface_color
                     Txt:
-                        text: "Artículos comprados"
+                        text: app.tr(app.lang, "items_bought")
                         color: app.muted_color
                         font_size: sp(13)
                     Txt:
@@ -867,7 +867,7 @@
                     padding: dp(16)
                     fill_color: app.surface_color
                     Txt:
-                        text: "Producto más comprado"
+                        text: app.tr(app.lang, "top_product")
                         color: app.muted_color
                         font_size: sp(13)
                     Txt:
@@ -881,7 +881,7 @@
                     padding: dp(16)
                     fill_color: app.surface_color
                     Txt:
-                        text: "Comercio más frecuente"
+                        text: app.tr(app.lang, "top_store")
                         color: app.muted_color
                         font_size: sp(13)
                     Txt:
@@ -895,7 +895,7 @@
                     padding: dp(16)
                     fill_color: app.surface_color
                     Txt:
-                        text: "Ahorro potencial estimado"
+                        text: app.tr(app.lang, "potential_savings")
                         color: app.muted_color
                         font_size: sp(13)
                     Txt:
