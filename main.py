@@ -183,6 +183,21 @@ TRANSLATIONS = {
         "nav_home": "Inicio",
         "nav_lists": "Listas",
         "nav_settings": "Ajustes",
+        # Resumen / Analytics
+        "nav_summary": "Resumen",
+        "summary_title": "Resumen",
+        "summary_sub": "Resumen de tus compras",
+        "month_spend": "Gasto del mes actual",
+        "items_bought": "Artículos comprados",
+        "top_product": "Producto más comprado",
+        "top_store": "Comercio más frecuente",
+        "potential_savings": "Ahorro potencial estimado",
+        "no_data": "Sin datos",
+        "no_store": "Sin comercio",
+        "default_product": "Producto",
+        "summary_none": "Aún no hay artículos marcados como comprados.",
+        "summary_legacy": "{} compra(s) antigua(s) no tienen fecha; el gasto mensual considera solo compras fechadas.",
+        "summary_dated": "Gastos del mes calculados con la fecha en que marcaste cada artículo como comprado.",
         # Login / Registro
         "login_title": "Bienvenido",
         "login_subtitle_login": "Inicia sesión para ver tus listas",
@@ -248,6 +263,21 @@ TRANSLATIONS = {
         "nav_home": "Home",
         "nav_lists": "Lists",
         "nav_settings": "Settings",
+        # Summary / Analytics
+        "nav_summary": "Summary",
+        "summary_title": "Summary",
+        "summary_sub": "Summary of your purchases",
+        "month_spend": "Current month spending",
+        "items_bought": "Items bought",
+        "top_product": "Most bought product",
+        "top_store": "Most frequent store",
+        "potential_savings": "Estimated potential savings",
+        "no_data": "No data",
+        "no_store": "No store",
+        "default_product": "Product",
+        "summary_none": "No items marked as bought yet.",
+        "summary_legacy": "{} old purchase(s) have no date; monthly spending only counts dated purchases.",
+        "summary_dated": "Monthly spending is calculated using the date you marked each item as bought.",
         # Login / Register
         "login_title": "Welcome",
         "login_subtitle_login": "Sign in to view your lists",
@@ -589,10 +619,10 @@ class ShoppingListApp(MDApp):
     # Resumen de Analytics
     analytics_month_spend = StringProperty("$0")
     analytics_completed = StringProperty("0")
-    analytics_top_product = StringProperty("Sin datos")
-    analytics_top_store = StringProperty("Sin datos")
+    analytics_top_product = StringProperty("")
+    analytics_top_store = StringProperty("")
     analytics_estimated_savings = StringProperty("$0")
-    analytics_summary = StringProperty("Agrega y marca productos como comprados para generar estadísticas.")
+    analytics_summary = StringProperty("")
 
     detail_name = StringProperty("")
     detail_meta = StringProperty("")
@@ -1616,12 +1646,12 @@ class ShoppingListApp(MDApp):
         estimated_savings = 0
 
         for lst in self.lists:
-            store = (lst.get("store") or "").strip() or "Sin comercio"
+            store = (lst.get("store") or "").strip() or self.tr(self.lang, "no_store")
             for item in lst.get("items", []):
                 if not item.get("done"):
                     continue
                 completed.append(item)
-                name = str(item.get("title") or "Producto").strip()
+                name = str(item.get("title") or self.tr(self.lang, "default_product")).strip()
                 key = _normalize_item_name(name)
                 product_counts[name] = product_counts.get(name, 0) + 1
                 store_counts[store] = store_counts.get(store, 0) + 1
@@ -1641,16 +1671,17 @@ class ShoppingListApp(MDApp):
 
         self.analytics_month_spend = format_price(month_spend) or "$0"
         self.analytics_completed = str(len(completed))
-        self.analytics_top_product = max(product_counts, key=product_counts.get) if product_counts else "Sin datos"
-        self.analytics_top_store = max(store_counts, key=store_counts.get) if store_counts else "Sin datos"
+        no_data = self.tr(self.lang, "no_data")
+        self.analytics_top_product = max(product_counts, key=product_counts.get) if product_counts else no_data
+        self.analytics_top_store = max(store_counts, key=store_counts.get) if store_counts else no_data
         self.analytics_estimated_savings = format_price(estimated_savings) or "$0"
         legacy = sum(1 for lst in self.lists for it in lst.get("items", []) if it.get("done") and not it.get("done_at"))
         if not completed:
-            self.analytics_summary = "Aún no hay artículos marcados como comprados."
+            self.analytics_summary = self.tr(self.lang, "summary_none")
         elif legacy:
-            self.analytics_summary = f"{legacy} compra(s) antigua(s) no tienen fecha; el gasto mensual considera solo compras fechadas."
+            self.analytics_summary = self.tr(self.lang, "summary_legacy").format(legacy)
         else:
-            self.analytics_summary = "Gastos del mes calculados con la fecha en que marcaste cada artículo como comprado."
+            self.analytics_summary = self.tr(self.lang, "summary_dated")
 
     def get_monthly_expenses(self):
         """Devuelve el gasto de cada mes usando compras con fecha registrada."""
@@ -1715,6 +1746,7 @@ class ShoppingListApp(MDApp):
         if self.root is None:
             return
         self.refresh_lists()
+        self.refresh_analytics()
         lst = self.current_list()
         if lst is not None:
             self._refresh_detail_meta(lst)
