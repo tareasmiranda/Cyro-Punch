@@ -606,12 +606,10 @@
         active: app.current_tab == self.key
         on_release: app.go(self.key)
     NavItem:
-        key: "analytics"
+        key: "resumen"
         icon: "chart-box-outline"
-        text: "Analytics"
+        text: "Resumen"
         active: app.current_tab == self.key
-        opacity: 1 if app.is_admin else 0
-        disabled: not app.is_admin
         on_release: app.go(self.key)
     NavItem:
         key: "ajustes"
@@ -795,14 +793,14 @@
                 height: self.minimum_height
                 spacing: dp(14)
 
-<AnalyticsScreen@MDScreen>:
-    name: "analytics"
+<ResumenScreen@MDScreen>:
+    name: "resumen"
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(54), dp(24), dp(24)
         spacing: dp(16)
         Txt:
-            text: "Analytics"
+            text: "Resumen"
             font_size: sp(30)
             bold: True
             size_hint_y: None
@@ -1241,7 +1239,7 @@ MDBoxLayout:
         LoginScreen:
         InicioScreen:
         ListasScreen:
-        AnalyticsScreen:
+        ResumenScreen:
         NuevaScreen:
         DetalleScreen:
         AjustesScreen:

@@ -42,6 +42,7 @@ import re
 import secrets
 import shutil
 import uuid
+import time
 from datetime import date, datetime
 
 from kivy.config import Config
@@ -370,7 +371,16 @@ def register_fonts():
 #  Widgets reutilizables
 # ─────────────────────────────────────────────────────────────────────────
 class Pressable(ButtonBehavior):
-    pass
+    """Botón base que registra automáticamente cada pulsación."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(on_release=self._register_metric_press)
+
+    def _register_metric_press(self, *_):
+        app = MDApp.get_running_app()
+        if app is not None and hasattr(app, "register_button_press"):
+            app.register_button_press(self)
 
 
 class BaseTxt(Label):
@@ -592,7 +602,6 @@ class ShoppingListApp(MDApp):
     auth_error = StringProperty("")
     auth_mode = StringProperty("login")   # "login" o "register"
     current_user = StringProperty("")
-    is_admin = BooleanProperty(False)
     has_users = BooleanProperty(False)
 
     # Tema
@@ -609,7 +618,7 @@ class ShoppingListApp(MDApp):
     track_color = ColorProperty(get_color_from_hex(PALETTE_DARK["TRACK"]))
     check_border_color = ColorProperty(get_color_from_hex(PALETTE_DARK["CHECK_BORDER"]))
 
-    SCREEN_ORDER = ("inicio", "listas", "analytics", "detalle", "ajustes")
+    SCREEN_ORDER = ("inicio", "listas", "resumen", "detalle", "ajustes")
 
     # ── Ciclo de vida ───────────────────────────────────────────────────
     def build(self):
@@ -628,16 +637,6 @@ class ShoppingListApp(MDApp):
 
         _users = self.load_users()
         _accounts = _users.get("users", {}) if isinstance(_users, dict) else {}
-        # Migración: si ya existen cuentas pero ninguna tiene rol admin,
-        # la primera cuenta registrada se convierte en administradora.
-        if isinstance(_accounts, dict) and _accounts:
-            if not any(isinstance(v, dict) and v.get("role") == "admin" for v in _accounts.values()):
-                first_account = next(iter(_accounts))
-                if not isinstance(_accounts[first_account], dict):
-                    _accounts[first_account] = {}
-                _accounts[first_account]["role"] = "admin"
-                _users["users"] = _accounts
-                self.save_users(_users)
         self.has_users = bool(_accounts)
         saved = _users.get("current_user", "") if isinstance(_users, dict) else ""
 
@@ -647,20 +646,28 @@ class ShoppingListApp(MDApp):
         self._form_origin = "listas"
         self._disarm_event = None
 
+        # Métricas de uso en un informe de texto fácil de leer.
+        self.metrics_file = os.path.join(self._data_dir(), "metricas.txt")
+        self.metrics = self.load_metrics()
+        self.metrics["sessions"] = int(self.metrics.get("sessions", 0)) + 1
+        self.metrics["last_session"] = datetime.now().isoformat(timespec="seconds")
+        self._screen_started_at = time.monotonic()
+        self._active_metric_screen = None
+
         if saved and saved in _accounts:
             self.current_user = saved
-            self.is_admin = bool(_accounts.get(saved, {}).get("role") == "admin")
             self._load_user_data(migrate_legacy=True)
             self.auth_mode = "login"
         else:
             self.current_user = ""
-            self.is_admin = False
             self.auth_mode = "login" if self.has_users else "register"
 
         root = Builder.load_file(KV_PATH)
         self.items_scroll = Factory.ItemsScroll()
         self.notes_card = Factory.NotesCard()
         root.ids.sm.current = "inicio" if self.current_user else "login"
+        self._start_screen_metrics(root.ids.sm.current)
+        self.save_metrics()
         return root
 
     def on_start(self):
@@ -671,15 +678,192 @@ class ShoppingListApp(MDApp):
 
     def on_pause(self):
         self.save_now()
+        self._finish_screen_metrics()
+        self.save_metrics()
         return True
 
     def on_resume(self):
         if self.current_user:
             self.refresh_lists()
             self.ui_check()
+        if self._active_metric_screen:
+            self._screen_started_at = time.monotonic()
 
     def on_stop(self):
         self.save_now()
+        self._finish_screen_metrics()
+        self.save_metrics()
+
+    # ── Métricas de uso ─────────────────────────────────────────────────
+    def load_metrics(self):
+        """Recupera las métricas desde un TXT con formato legible."""
+        data = {
+            "version": 1, "sessions": 0, "buttons": {}, "screens": {},
+            "navigation": {}, "events": [],
+        }
+        try:
+            with open(self.metrics_file, "r", encoding="utf-8") as file:
+                section = None
+                for raw_line in file:
+                    line = raw_line.strip()
+                    if line.startswith("Sesiones iniciadas:"):
+                        try: data["sessions"] = int(line.split(":", 1)[1].strip())
+                        except ValueError: pass
+                    elif line.startswith("Última sesión:"):
+                        data["last_session"] = line.split(":", 1)[1].strip()
+                    elif line == "DETALLE DE PANTALLAS": section = "screens"
+                    elif line == "PULSACIONES DE BOTONES": section = "buttons"
+                    elif line in ("RESUMEN DE USO", "================================", "--------------------", "----------------------", ""):
+                        continue
+                    elif section == "screens" and line.startswith("- ") and "|" in line:
+                        name, details = line[2:].split("|", 1)
+                        if "[" in name and name.endswith("]"):
+                            name = name.rsplit("[", 1)[1][:-1]
+                        values = {}
+                        for part in details.split(";"):
+                            if "=" in part:
+                                k, v = part.split("=", 1)
+                                values[k.strip()] = v.strip()
+                        try:
+                            data["screens"][name.strip()] = {
+                                "visits": int(values.get("visitas", "0")),
+                                "total_time_seconds": float(values.get("tiempo_segundos", "0")),
+                            }
+                        except ValueError: pass
+                    elif section == "buttons" and line.startswith("- ") and "|" in line:
+                        name, count = line[2:].rsplit("|", 1)
+                        try: data["buttons"][name.strip()] = int(count.strip().split()[0])
+                        except (ValueError, IndexError): pass
+        except FileNotFoundError:
+            # Migra las métricas de la versión anterior (JSON) al nuevo TXT.
+            legacy_path = os.path.join(self._data_dir(), "metricas.json")
+            try:
+                with open(legacy_path, "r", encoding="utf-8") as file:
+                    legacy = json.load(file)
+                if isinstance(legacy, dict):
+                    for key in ("sessions", "last_session", "buttons", "screens", "navigation", "events"):
+                        if key in legacy:
+                            data[key] = legacy[key]
+            except (FileNotFoundError, json.JSONDecodeError, OSError, UnicodeDecodeError):
+                pass
+        except (OSError, UnicodeDecodeError):
+            pass
+        return data
+
+    @staticmethod
+    def _format_metric_time(seconds):
+        seconds = max(0, int(seconds))
+        hours, remainder = divmod(seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
+        parts = []
+        if hours: parts.append(f"{hours} h")
+        if minutes: parts.append(f"{minutes} min")
+        if secs or not parts: parts.append(f"{secs} s")
+        return " ".join(parts)
+
+    def save_metrics(self):
+        """Guarda las estadísticas como un informe TXT comprensible."""
+        if not getattr(self, "metrics_file", None):
+            return
+        try:
+            lines = [
+                "RESUMEN DE USO DE LA APLICACIÓN",
+                "================================",
+                f"Sesiones iniciadas: {self.metrics.get('sessions', 0)}",
+                f"Última sesión: {self.metrics.get('last_session', 'Sin registros')}",
+                "",
+                "DETALLE DE PANTALLAS",
+                "--------------------",
+            ]
+            screens = self.metrics.get("screens", {})
+            if screens:
+                screen_names = {
+                    "inicio": "Inicio", "listas": "Mis listas", "resumen": "Resumen",
+                    "detalle": "Detalle de lista", "nueva": "Nueva lista",
+                    "ajustes": "Ajustes", "login": "Inicio de sesión",
+                }
+                for name, record in sorted(screens.items()):
+                    visits = int(record.get("visits", 0))
+                    seconds = float(record.get("total_time_seconds", 0))
+                    readable_name = screen_names.get(name, name.replace("_", " ").capitalize())
+                    lines.append(f"- {readable_name} [{name}] | visitas={visits}; tiempo={self._format_metric_time(seconds)}; tiempo_segundos={seconds:.2f}")
+            else:
+                lines.append("Todavía no hay visitas registradas.")
+            lines.extend(["", "PULSACIONES DE BOTONES", "----------------------"])
+            buttons = self.metrics.get("buttons", {})
+            if buttons:
+                for name, count in sorted(buttons.items(), key=lambda item: (-item[1], item[0])):
+                    lines.append(f"- {name} | {count} pulsaciones")
+            else:
+                lines.append("Todavía no hay pulsaciones registradas.")
+            lines.extend(["", "Nota: el tiempo se acumula mientras la aplicación permanece en cada pantalla."])
+            tmp_path = self.metrics_file + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as file:
+                file.write("\n".join(lines) + "\n")
+            os.replace(tmp_path, self.metrics_file)
+        except OSError as exc:
+            Logger.error(f"Métricas: no se pudo guardar {self.metrics_file}: {exc}")
+
+    def _start_screen_metrics(self, screen_name):
+        self._active_metric_screen = screen_name
+        self._screen_started_at = time.monotonic()
+        record = self.metrics.setdefault("screens", {}).setdefault(
+            screen_name, {"visits": 0, "total_time_seconds": 0.0}
+        )
+        record["visits"] = int(record.get("visits", 0)) + 1
+        self.metrics.setdefault("events", []).append({
+            "type": "screen_open",
+            "screen": screen_name,
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+        })
+        self._trim_metric_events()
+
+    def _finish_screen_metrics(self):
+        screen_name = getattr(self, "_active_metric_screen", None)
+        started = getattr(self, "_screen_started_at", None)
+        if not screen_name or started is None:
+            return
+        elapsed = max(0.0, time.monotonic() - started)
+        record = self.metrics.setdefault("screens", {}).setdefault(
+            screen_name, {"visits": 0, "total_time_seconds": 0.0}
+        )
+        record["total_time_seconds"] = round(
+            float(record.get("total_time_seconds", 0.0)) + elapsed, 2
+        )
+        self.metrics["last_screen"] = screen_name
+        self.metrics["last_screen_duration_seconds"] = round(elapsed, 2)
+        # Reinicia el contador para que llamadas repetidas (pausa/cierre) no
+        # contabilicen dos veces el mismo intervalo.
+        self._screen_started_at = time.monotonic()
+
+    def _trim_metric_events(self):
+        # Evita que el historial de eventos crezca indefinidamente.
+        events = self.metrics.setdefault("events", [])
+        if len(events) > 1000:
+            del events[:-1000]
+
+    def register_button_press(self, widget):
+        """Registra las pulsaciones de los widgets basados en Pressable."""
+        label = ""
+        for attr in ("text", "key", "name", "title", "icon"):
+            value = getattr(widget, attr, "")
+            if value:
+                label = str(value).strip()
+                if label:
+                    break
+        if not label:
+            label = widget.__class__.__name__
+        button_key = f"{widget.__class__.__name__}:{label}"
+        buttons = self.metrics.setdefault("buttons", {})
+        buttons[button_key] = int(buttons.get(button_key, 0)) + 1
+        self.metrics.setdefault("events", []).append({
+            "type": "button_press",
+            "button": button_key,
+            "screen": self.root.ids.sm.current if self.root else "unknown",
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+        })
+        self._trim_metric_events()
+        self.save_metrics()
 
     # ── Persistencia: listas ────────────────────────────────────────────
     def _data_dir(self):
@@ -877,19 +1061,16 @@ class ShoppingListApp(MDApp):
                 self.auth_error = self.tr(self.lang, "auth_user_exists")
                 return
             salt = secrets.token_hex(16)
-            # La primera cuenta es administradora; las siguientes son usuarios normales.
-            has_admin = any(isinstance(v, dict) and v.get("role") == "admin" for v in accounts.values())
+            # Todas las cuentas tienen los mismos permisos.
             accounts[username] = {
                 "salt": salt,
                 "hash": _hash_password(password, salt),
-                "role": "user" if has_admin else "admin",
             }
             data["users"] = accounts
             data["current_user"] = username
             self.save_users(data)
             self.has_users = True
             self.current_user = username
-            self.is_admin = accounts[username].get("role") == "admin"
             self._load_user_data()
             self._enter_app()
             return
@@ -906,7 +1087,6 @@ class ShoppingListApp(MDApp):
         data["current_user"] = username
         self.save_users(data)
         self.current_user = username
-        self.is_admin = record.get("role") == "admin"
         self._load_user_data()
         self._enter_app()
 
@@ -921,7 +1101,6 @@ class ShoppingListApp(MDApp):
         data.pop("current_user", None)
         self.save_users(data)
         self.current_user = ""
-        self.is_admin = False
         self.data_file = None
         self.lists = []
         self.current_id = None
@@ -950,12 +1129,10 @@ class ShoppingListApp(MDApp):
 
     # ── Navegación ──────────────────────────────────────────────────────
     def go(self, screen_name):
-        # La autorización se valida aquí, no solo ocultando el botón.
-        if screen_name == "analytics" and not self.is_admin:
-            return
         sm = self.root.ids.sm
         if sm.current == screen_name:
             return
+        self._finish_screen_metrics()
         Window.release_all_keyboards()
         if screen_name == "nueva":
             direction = "up"
@@ -969,12 +1146,14 @@ class ShoppingListApp(MDApp):
             direction = "left" if forward else "right"
         sm.transition.direction = direction
         sm.current = screen_name
+        self._start_screen_metrics(screen_name)
+        self.save_metrics()
         self._schedule_ui_check()
         if screen_name in ("detalle", "nueva"):
             self.current_tab = "listas"
-        elif screen_name in ("inicio", "listas", "analytics", "ajustes"):
+        elif screen_name in ("inicio", "listas", "resumen", "ajustes"):
             self.current_tab = screen_name
-        if screen_name == "analytics":
+        if screen_name == "resumen":
             self.refresh_analytics()
 
     def _on_keyboard(self, _window, key, *_args):
