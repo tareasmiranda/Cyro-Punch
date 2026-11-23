@@ -1,0 +1,24 @@
+RESUMEN DE USO DE LA APLICACIÓN
+================================
+Sesiones iniciadas: 1
+Última sesión: 2026-11-23T01:16:54
+
+DETALLE DE PANTALLAS
+--------------------
+- Detalle de lista [detalle] | visitas=1; tiempo=3 s; tiempo_segundos=3.94
+- Inicio [inicio] | visitas=1; tiempo=0 s; tiempo_segundos=0.92
+- Mis listas [listas] | visitas=3; tiempo=3 s; tiempo_segundos=3.43
+- Inicio de sesión [login] | visitas=1; tiempo=2 s; tiempo_segundos=2.87
+- Nueva lista [nueva] | visitas=1; tiempo=2 s; tiempo_segundos=2.45
+- Resumen [resumen] | visitas=1; tiempo=0 s; tiempo_segundos=0.75
+
+PULSACIONES DE BOTONES
+----------------------
+- NavItem:Listas | 2 pulsaciones
+- FormButton:Crear cuenta | 1 pulsaciones
+- FormButton:Crear lista | 1 pulsaciones
+- IconButton:arrow-left | 1 pulsaciones
+- NavItem:Resumen | 1 pulsaciones
+- PillButton:Agregar | 1 pulsaciones
+
+Nota: el tiempo se acumula mientras la aplicación permanece en cada pantalla.
