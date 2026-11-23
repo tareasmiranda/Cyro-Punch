@@ -146,6 +146,39 @@
         icon: root.icon
         font_size: sp(26)
 
+<FloatingAddButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint: None, None
+    size: dp(60), dp(60)
+    canvas.before:
+        Color:
+            rgba: app.accent_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(30)]
+    PillIcon:
+        icon: root.icon
+        font_size: sp(30)
+
+<ErasePriceButton>:
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint: None, None
+    size: dp(36), dp(36)
+    canvas.before:
+        Color:
+            rgba: 0.94, 0.33, 0.31, 0.15
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(10)]
+    Glyph:
+        icon: "delete-outline"
+        icon_color: 0.94, 0.33, 0.31, 1
+        font_size: sp(18)
+
 <LinkButton>:
     anchor_x: "center"
     anchor_y: "center"
@@ -312,6 +345,57 @@
         padding: 0, max(0, (self.height - self.line_height) / 2), 0, 0
         on_text_validate: root.dispatch("on_submit")
 
+# ── Popup agregar producto ───────────────────────────────────────────────
+
+<AddItemPopup>:
+    title: ""
+    separator_height: 0
+    background: ""
+    background_color: 0, 0, 0, 0.55
+    size_hint: None, None
+    size: dp(320), dp(280)
+    auto_dismiss: True
+    BoxLayout:
+        orientation: "vertical"
+        canvas.before:
+            Color:
+                rgba: app.surface_color
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(22)]
+        padding: dp(20)
+        spacing: dp(12)
+        Txt:
+            text: app.tr(app.lang, "add_product_popup_title")
+            bold: True
+            font_size: sp(18)
+            size_hint_y: None
+            height: dp(28)
+        QuickInput:
+            hint: app.tr(app.lang, "add_product_hint")
+            text: app.new_item_name
+            on_text: app.new_item_name = self.text
+            on_submit: root.submit()
+        QuickInput:
+            numeric: True
+            hint: app.tr(app.lang, "price_hint")
+            text: app.new_item_price
+            on_text: app.new_item_price = self.text
+            on_submit: root.submit()
+        BoxLayout:
+            size_hint_y: None
+            height: dp(54)
+            spacing: dp(10)
+            FormButton:
+                text: app.tr(app.lang, "cancel")
+                icon: "close"
+                on_release: root.dismiss()
+            FormButton:
+                text: app.tr(app.lang, "add")
+                icon: "plus"
+                on_release: root.submit()
+
 # ── Opción de tipo de lista (Checklist / Notepad) ────────────────────────
 
 <TypeOption>:
@@ -451,6 +535,65 @@
         font_size: sp(14.5)
         color: app.muted_color
 
+<EmptyPrices>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: dp(230)
+    spacing: dp(10)
+    padding: 0, dp(50), 0, 0
+    Glyph:
+        icon: "tag-multiple-outline"
+        icon_color: app.subtle_color
+        font_size: sp(52)
+        pos_hint: {"center_x": .5}
+    Txt:
+        text: app.tr(app.lang, "no_prices")
+        halign: "center"
+        bold: True
+        font_size: sp(18)
+    Txt:
+        text: app.tr(app.lang, "no_prices_sub")
+        halign: "center"
+        font_size: sp(14.5)
+        color: app.muted_color
+
+<PriceItemSection>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+    spacing: dp(6)
+    padding: dp(16), dp(12), dp(16), dp(12)
+    fill_color: app.surface_color
+    border_color: app.border_color
+    radius: dp(16)
+    Txt:
+        text: root.item_name
+        bold: True
+        font_size: sp(15)
+        size_hint_y: None
+        height: dp(28)
+        halign: "left"
+
+<PriceStoreRow>:
+    size_hint_y: None
+    height: dp(40)
+    spacing: dp(8)
+    TxtAuto:
+        text: root.store
+        font_size: sp(14)
+        color: app.text_color if root.is_lowest else app.muted_color
+        pos_hint: {"center_y": .5}
+    Widget:
+    TxtAuto:
+        text: root.price
+        font_size: sp(15)
+        bold: True
+        color: app.accent_color if root.is_lowest else app.text_color
+        pos_hint: {"center_y": .5}
+    ErasePriceButton:
+        pos_hint: {"center_y": .5}
+        on_release: app.delete_price(root.item_key, root.store)
+
 <ItemsScroll@ScrollView>:
     bar_width: 0
     do_scroll_x: False
@@ -488,6 +631,7 @@
         size_hint_y: None
         height: self.minimum_height
         pos_hint: {"center_y": .5}
+        spacing: dp(2)
         Txt:
             text: root.title_markup
             markup: True
@@ -495,17 +639,18 @@
             color: app.muted_color if root.done else app.text_color
             shorten: True
             shorten_from: "right"
-    Label:
-        text: root.cheaper_text
-        font_name: app.font_name
-        font_size: "11sp"
-        color: app.accent_color
-        opacity: 1 if root.cheaper_text else 0
-        size_hint_y: None
-        height: self.texture_size[1] if root.cheaper_text else 0
-        text_size: self.width, None
-        halign: "left"
-        shorten: True
+        Label:
+            text: root.cheaper_text
+            font_name: app.font_name
+            font_size: "11sp"
+            color: app.accent_color
+            opacity: 1 if root.cheaper_text else 0
+            size_hint_y: None
+            height: self.texture_size[1] if root.cheaper_text else 0
+            text_size: self.width, None
+            halign: "left"
+            shorten: True
+            shorten_from: "right"
     TxtAuto:
         text: root.price_text
         font_size: sp(15)

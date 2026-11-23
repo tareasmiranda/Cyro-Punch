@@ -11,36 +11,9 @@ Pantallas:
   6. Ajustes           (tema, notificaciones, idioma, precios, cerrar sesión)
   7. Precios más bajos (historial global por comercio, con borrado por fila)
 
-Autenticación y cuentas:
-  - Los usuarios se guardan en "usuarios.json" (PBKDF2-SHA256 + salt).
-  - La pantalla de login alterna entre dos modos:
-      · "login"    → iniciar sesión con una cuenta existente
-      · "register" → crear una cuenta nueva
-    Al pie hay un enlace para cambiar de un modo al otro.
-  - Cada cuenta tiene SU PROPIO archivo de listas:
-        listas_<usuario>.json
-    así las listas de un usuario no se mezclan con las de otro.
-
-Precios globales por comercio:
-  - Cada vez que se agrega un artículo con precio a una lista cuyo comercio
-    está definido, el precio se guarda en "precios_globales.json" bajo la
-    clave normalizada del nombre del artículo:
-        { "items": { "leche": { "Lider": 1500, "Jumbo": 1200 } } }
-  - Si al agregar el artículo otro comercio ya lo tenía MÁS BARATO, se
-    muestra una notificación local con el comercio y precio más baratos,
-    y la fila muestra un aviso "Más barato en X: $Y".
-  - En "Mis listas", cada tarjeta añade "· ahorras hasta $Z" cuando hay
-    artículos pendientes que se podrían comprar más baratos en otro
-    comercio conocido.
-  - En Ajustes → "Precios más bajos" se puede ver y borrar cada precio
-    individual del historial global.
-  - En Ajustes → "Borrar historial de precios" se puede borrar todo
-    (con confirmación de 2 toques).
-
-Instalación:
-    pip install kivy kivymd plyer pyjnius
-    Windows:  pip install winotify   (o win10toast)
-    Linux:    sudo apt install libnotify-bin
+El botón flotante "+" en la pantalla de detalle abre un menú (popup) para
+agregar nombre y precio del producto. La barra inferior tiene 5 botones:
+Inicio · Listas · Resumen · Ajustes · Precios.
 """
 
 import hashlib
@@ -56,8 +29,6 @@ from datetime import date, datetime
 from kivy.config import Config
 from kivy.utils import platform
 
-# En escritorio, la ventana simula el tamaño de un teléfono. Debe definirse
-# ANTES de importar la ventana de Kivy (kivy.core.window).
 if platform in ("win", "linux", "macosx"):
     Config.set("graphics", "width", "392")
     Config.set("graphics", "height", "800")
@@ -83,6 +54,7 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.widget import Widget
 from kivy.utils import escape_markup, get_color_from_hex
@@ -91,9 +63,6 @@ from kivymd.app import MDApp
 
 from noti import notify_cheaper_store, notify_test
 
-# El teclado en pantalla debe EMPUJAR hacia arriba el contenido (en vez de
-# aplastar el layout) para que la barra de agregar producto en el detalle
-# quede visible por encima del teclado.
 Window.softinput_mode = "below_target"
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -176,6 +145,7 @@ TRANSLATIONS = {
         "info_new": "Después podrás agregar productos a tu nueva lista.",
         "info_edit": "Los cambios se guardan automáticamente en tu dispositivo.",
         "add_product_hint": "Agregar producto",
+        "add_product_popup_title": "Agregar producto",
         "price_hint": "$",
         "total_label": "Total de la compra",
         "notes_hint": "Escribe tus notas aquí...",
@@ -190,7 +160,7 @@ TRANSLATIONS = {
         "nav_home": "Inicio",
         "nav_lists": "Listas",
         "nav_settings": "Ajustes",
-        # Login / Registro
+        "nav_prices": "Precios",
         "login_title": "Bienvenido",
         "login_subtitle_login": "Inicia sesión para ver tus listas",
         "login_subtitle_register": "Crea tu cuenta para empezar",
@@ -205,7 +175,6 @@ TRANSLATIONS = {
         "auth_user_not_found": "Usuario no encontrado.",
         "auth_wrong_password": "Contraseña incorrecta.",
         "auth_user_exists": "Ese usuario ya existe.",
-        # Precios más bajos
         "lowest_prices": "Precios más bajos",
         "lowest_prices_sub": "Historial por comercio",
         "no_prices": "Sin precios registrados",
@@ -247,6 +216,7 @@ TRANSLATIONS = {
         "info_new": "You can add products to your new list afterwards.",
         "info_edit": "Changes are saved automatically on your device.",
         "add_product_hint": "Add product",
+        "add_product_popup_title": "Add product",
         "price_hint": "$",
         "total_label": "Shopping total",
         "notes_hint": "Write your notes here...",
@@ -261,7 +231,7 @@ TRANSLATIONS = {
         "nav_home": "Home",
         "nav_lists": "Lists",
         "nav_settings": "Settings",
-        # Login / Register
+        "nav_prices": "Prices",
         "login_title": "Welcome",
         "login_subtitle_login": "Sign in to view your lists",
         "login_subtitle_register": "Create your account to get started",
@@ -276,7 +246,6 @@ TRANSLATIONS = {
         "auth_user_not_found": "User not found.",
         "auth_wrong_password": "Wrong password.",
         "auth_user_exists": "That username is taken.",
-        # Lowest prices
         "lowest_prices": "Lowest prices",
         "lowest_prices_sub": "Price history by store",
         "no_prices": "No prices recorded",
@@ -336,8 +305,7 @@ USERS_FILENAME = "usuarios.json"
 GLOBAL_PRICES_FILENAME = "precios_globales.json"
 LIST_TYPES = ("checklist", "notepad")
 KV_PATH = os.path.join(BASE_DIR, "interfaz.kv")
-
-LEGACY_LIST_FILE = "listas.json"  # compatibilidad con versiones anteriores
+LEGACY_LIST_FILE = "listas.json"
 
 
 def _hash_password(password, salt):
@@ -394,8 +362,6 @@ def register_fonts():
 #  Widgets reutilizables
 # ─────────────────────────────────────────────────────────────────────────
 class Pressable(ButtonBehavior):
-    """Botón base que registra automáticamente cada pulsación."""
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bind(on_release=self._register_metric_press)
@@ -440,6 +406,16 @@ class FormButton(Pressable, AnchorLayout):
 
 class AddButton(Pressable, AnchorLayout):
     icon = StringProperty("plus")
+
+
+class FloatingAddButton(Pressable, AnchorLayout):
+    """Botón flotante redondo que abre el popup de "Agregar producto"."""
+    icon = StringProperty("plus")
+
+
+class ErasePriceButton(Pressable, AnchorLayout):
+    """Botón rojo para borrar un precio del historial global."""
+    pass
 
 
 class LinkButton(Pressable, AnchorLayout):
@@ -539,6 +515,27 @@ class EmptyPrices(BoxLayout):
     pass
 
 
+# ── Popup para agregar producto ─────────────────────────────────────────
+class AddItemPopup(Popup):
+    """Popup que pide nombre y precio. Al confirmar llama a app.add_item()."""
+
+    def submit(self):
+        app = MDApp.get_running_app()
+        if app is None:
+            return
+        if not app.new_item_name.strip():
+            return
+        self.dismiss()
+        app.add_item()
+
+    def on_dismiss(self):
+        # Limpia los campos para que al reabrir estén vacíos.
+        app = MDApp.get_running_app()
+        if app is not None:
+            app.new_item_name = ""
+            app.new_item_price = ""
+
+
 class ShoppingItem(Pressable, Card):
     title = StringProperty()
     price = StringProperty()
@@ -621,7 +618,6 @@ class ShoppingListApp(MDApp):
 
     lists_count = NumericProperty(0)
 
-    # Resumen de Analytics
     analytics_month_spend = StringProperty("$0")
     analytics_completed = StringProperty("0")
     analytics_top_product = StringProperty("Sin datos")
@@ -648,15 +644,13 @@ class ShoppingListApp(MDApp):
     delete_armed = BooleanProperty(False)
     prices_clear_armed = BooleanProperty(False)
 
-    # Autenticación
     auth_username = StringProperty("")
     auth_password = StringProperty("")
     auth_error = StringProperty("")
-    auth_mode = StringProperty("login")   # "login" o "register"
+    auth_mode = StringProperty("login")
     current_user = StringProperty("")
     has_users = BooleanProperty(False)
 
-    # Tema
     bg_color = ColorProperty(get_color_from_hex(PALETTE_DARK["BG"]))
     surface_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE"]))
     surface_alt_color = ColorProperty(get_color_from_hex(PALETTE_DARK["SURFACE_ALT"]))
@@ -670,7 +664,7 @@ class ShoppingListApp(MDApp):
     track_color = ColorProperty(get_color_from_hex(PALETTE_DARK["TRACK"]))
     check_border_color = ColorProperty(get_color_from_hex(PALETTE_DARK["CHECK_BORDER"]))
 
-    SCREEN_ORDER = ("inicio", "listas", "resumen", "detalle", "ajustes", "precios")
+    SCREEN_ORDER = ("inicio", "listas", "resumen", "ajustes", "precios", "detalle")
 
     # ── Ciclo de vida ───────────────────────────────────────────────────
     def build(self):
@@ -698,7 +692,6 @@ class ShoppingListApp(MDApp):
         self._form_origin = "listas"
         self._disarm_event = None
 
-        # Métricas de uso en un informe de texto fácil de leer.
         self.metrics_file = os.path.join(self._data_dir(), "metricas.txt")
         self.metrics = self.load_metrics()
         self.metrics["sessions"] = int(self.metrics.get("sessions", 0)) + 1
@@ -748,7 +741,6 @@ class ShoppingListApp(MDApp):
 
     # ── Métricas de uso ─────────────────────────────────────────────────
     def load_metrics(self):
-        """Recupera las métricas desde un TXT con formato legible."""
         data = {
             "version": 1, "sessions": 0, "buttons": {}, "screens": {},
             "navigation": {}, "events": [],
@@ -787,7 +779,6 @@ class ShoppingListApp(MDApp):
                         try: data["buttons"][name.strip()] = int(count.strip().split()[0])
                         except (ValueError, IndexError): pass
         except FileNotFoundError:
-            # Migra las métricas de la versión anterior (JSON) al nuevo TXT.
             legacy_path = os.path.join(self._data_dir(), "metricas.json")
             try:
                 with open(legacy_path, "r", encoding="utf-8") as file:
@@ -814,7 +805,6 @@ class ShoppingListApp(MDApp):
         return " ".join(parts)
 
     def save_metrics(self):
-        """Guarda las estadísticas como un informe TXT comprensible."""
         if not getattr(self, "metrics_file", None):
             return
         try:
@@ -885,18 +875,14 @@ class ShoppingListApp(MDApp):
         )
         self.metrics["last_screen"] = screen_name
         self.metrics["last_screen_duration_seconds"] = round(elapsed, 2)
-        # Reinicia el contador para que llamadas repetidas (pausa/cierre) no
-        # contabilicen dos veces el mismo intervalo.
         self._screen_started_at = time.monotonic()
 
     def _trim_metric_events(self):
-        # Evita que el historial de eventos crezca indefinidamente.
         events = self.metrics.setdefault("events", [])
         if len(events) > 1000:
             del events[:-1000]
 
     def register_button_press(self, widget):
-        """Registra las pulsaciones de los widgets basados en Pressable."""
         label = ""
         for attr in ("text", "key", "name", "title", "icon"):
             value = getattr(widget, attr, "")
@@ -923,16 +909,11 @@ class ShoppingListApp(MDApp):
         return self.user_data_dir if platform in ("android", "ios") else BASE_DIR
 
     def _data_path_for(self, username):
-        """Archivo de listas propio de cada usuario."""
         return os.path.join(self._data_dir(), f"listas_{_safe_username(username)}.json")
 
     def _load_user_data(self, migrate_legacy=False):
-        """Asocia self.data_file/self.lists a la cuenta actual."""
         self.data_file = self._data_path_for(self.current_user)
-
         if migrate_legacy:
-            # Si existía el archivo antiguo (una sola lista global), se copia
-            # al usuario recordado la primera vez que arranca esta versión.
             legacy = os.path.join(self._data_dir(), LEGACY_LIST_FILE)
             if not os.path.exists(self.data_file) and os.path.exists(legacy):
                 try:
@@ -940,7 +921,6 @@ class ShoppingListApp(MDApp):
                     Logger.info(f"Listas: migradas de {legacy} a {self.data_file}")
                 except OSError as exc:
                     Logger.warning(f"Listas: no se pudo migrar: {exc}")
-
         self.lists = self.load_lists()
         self.current_id = None
 
@@ -1046,13 +1026,9 @@ class ShoppingListApp(MDApp):
             Logger.error(f"Precios: no se pudo guardar {self.prices_file}: {exc}")
 
     def _record_price(self, name, store, price):
-        """Guarda `price` como el precio del artículo `name` en `store` y
-        devuelve (comercio_más_barato, precio) si OTRO comercio lo tiene más
-        barato; si no, devuelve None."""
         key = _normalize_item_name(name)
         if not key or not store or price <= 0:
             return None
-
         bucket = self.global_prices.setdefault(key, {})
         cheaper = None
         for other_store, other_price in bucket.items():
@@ -1060,14 +1036,11 @@ class ShoppingListApp(MDApp):
                 continue
             if other_price < price and (cheaper is None or other_price < cheaper[1]):
                 cheaper = (other_store, other_price)
-
         bucket[store] = price
         self.save_global_prices()
         return cheaper
 
     def _cheaper_for(self, item_name, current_price, current_store):
-        """Devuelve (comercio, precio) del comercio más barato (distinto al
-        actual) para `item_name`, o None si no hay uno más barato."""
         if not current_store:
             return None
         key = _normalize_item_name(item_name)
@@ -1097,8 +1070,6 @@ class ShoppingListApp(MDApp):
         return f"Más barato en {store}: {format_price(price)}"
 
     def _list_savings(self, lst):
-        """Ahorro potencial sumando, por artículo pendiente, la diferencia con
-        el comercio más barato conocido. Devuelve 0 si no hay ahorro."""
         total = 0
         for it in lst["items"]:
             if it["done"]:
@@ -1129,7 +1100,6 @@ class ShoppingListApp(MDApp):
             return
         self._disarm_clear_prices()
         self.clear_global_prices()
-        # Refresca la vista de precios si está en foco.
         if self.root is not None and self.root.ids.sm.current == "precios":
             self.refresh_lowest_prices()
 
@@ -1179,6 +1149,15 @@ class ShoppingListApp(MDApp):
         if self.current_user:
             self.refresh_lists()
 
+    # ── Popup agregar producto ──────────────────────────────────────────
+    def open_add_item_popup(self):
+        lst = self.current_list()
+        if lst is None or lst["type"] != "checklist":
+            return
+        self.new_item_name = ""
+        self.new_item_price = ""
+        AddItemPopup().open()
+
     # ── Login / Registro ────────────────────────────────────────────────
     def toggle_auth_mode(self):
         self.auth_mode = "login" if self.auth_mode == "register" else "register"
@@ -1216,7 +1195,6 @@ class ShoppingListApp(MDApp):
             self._enter_app()
             return
 
-        # Login
         record = accounts.get(username)
         if record is None:
             self.auth_error = self.tr(self.lang, "auth_user_not_found")
@@ -1283,7 +1261,10 @@ class ShoppingListApp(MDApp):
             direction = "up"
         else:
             order = self.SCREEN_ORDER
-            forward = order.index(screen_name) > order.index(sm.current)
+            try:
+                forward = order.index(screen_name) > order.index(sm.current)
+            except ValueError:
+                forward = True
             direction = "left" if forward else "right"
         sm.transition.direction = direction
         sm.current = screen_name
@@ -1292,12 +1273,12 @@ class ShoppingListApp(MDApp):
         self._schedule_ui_check()
         if screen_name in ("detalle", "nueva"):
             self.current_tab = "listas"
-        elif screen_name in ("inicio", "listas", "resumen", "ajustes"):
+        elif screen_name in ("inicio", "listas", "resumen", "ajustes", "precios"):
             self.current_tab = screen_name
-        elif screen_name == "precios":
-            self.current_tab = "ajustes"
         if screen_name == "resumen":
             self.refresh_analytics()
+        elif screen_name == "precios":
+            self.refresh_lowest_prices()
 
     def _on_keyboard(self, _window, key, *_args):
         if key != 27:
@@ -1310,9 +1291,6 @@ class ShoppingListApp(MDApp):
             return True
         if current == "detalle":
             self.go("listas")
-            return True
-        if current == "precios":
-            self.go("ajustes")
             return True
         return False
 
@@ -1412,8 +1390,6 @@ class ShoppingListApp(MDApp):
         return self.tr(self.lang, "items_completed").format(total, done)
 
     def _list_meta(self, lst):
-        # Siempre mostramos la fecha concreta (no "hoy") para que el usuario
-        # pueda identificar de un vistazo cuándo se actualizó cada lista.
         when = self.tr(self.lang, "updated_on").format(
             format_date(lst["updated"], self.lang, weekday=False)
         )
@@ -1689,7 +1665,6 @@ class ShoppingListApp(MDApp):
 
     # ── Analytics ───────────────────────────────────────────────────────
     def refresh_analytics(self):
-        """Calcula indicadores a partir de los artículos marcados como comprados."""
         month_key = date.today().strftime("%Y-%m")
         completed = []
         month_spend = 0
@@ -1714,8 +1689,6 @@ class ShoppingListApp(MDApp):
                 done_at = str(item.get("done_at") or "")
                 if done_at[:7] == month_key:
                     month_spend += price
-                # Ahorro potencial: diferencia frente al precio más bajo conocido
-                # en otro comercio. No representa un ahorro ya realizado.
                 known = self.global_prices.get(key, {})
                 other_prices = [int(v) for k, v in known.items() if k != store and int(v) > 0]
                 if price > 0 and other_prices and min(other_prices) < price:
@@ -1735,7 +1708,6 @@ class ShoppingListApp(MDApp):
             self.analytics_summary = "Gastos del mes calculados con la fecha en que marcaste cada artículo como comprado."
 
     def get_monthly_expenses(self):
-        """Devuelve el gasto de cada mes usando compras con fecha registrada."""
         totals = {}
         for lst in self.lists:
             for item in lst.get("items", []):
@@ -1746,7 +1718,6 @@ class ShoppingListApp(MDApp):
         return dict(sorted(totals.items()))
 
     def get_frequent_products(self, limit=5):
-        """Entrega los productos más comprados y su cantidad."""
         counts = {}
         for lst in self.lists:
             for item in lst.get("items", []):
@@ -1757,7 +1728,6 @@ class ShoppingListApp(MDApp):
         return sorted(counts.items(), key=lambda pair: pair[1], reverse=True)[:limit]
 
     def get_frequent_stores(self, limit=5):
-        """Entrega los comercios con más artículos comprados en sus listas."""
         counts = {}
         for lst in self.lists:
             store = (lst.get("store") or "").strip()
@@ -1800,8 +1770,6 @@ class ShoppingListApp(MDApp):
         lst = self.current_list()
         if lst is not None:
             self._refresh_detail_meta(lst)
-            # Recalcula los avisos de "más barato en..." con el idioma nuevo,
-            # conservando scroll y lo que el usuario estuviera escribiendo.
             if (self.root.ids.sm.current == "detalle"
                     and lst["type"] == "checklist"
                     and not self.new_item_name and not self.new_item_price):
